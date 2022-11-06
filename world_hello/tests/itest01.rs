@@ -81,9 +81,12 @@ fn it_reference_value() {
     assert_eq!(5, x);
     assert_eq!(5, *y);
 
+    // ref 与 & 类似，可以用来获取一个值的引用
     let ref z = x;
     assert_eq!(5, *z);
 }
+
+// String, &str
 
 #[test]
 fn it_update_string() {
@@ -96,18 +99,14 @@ fn it_update_string() {
     println!("string: {}", s);
 
     s.push_str(" (test)");
+    s += "!";
     println!("string: {}", s);
 }
 
 #[test]
-fn it_slice() {
-    let a = [1, 2, 3, 4, 5];
-    let s = &a[1..3];
-    assert_eq!(s, &[2, 3])
-}
-
-#[test]
 fn it_string_op() {
+    // &str 是长度固定的字符串切片，String 是可动态增长的字符串
+    // String 还是 Vector, 它们都是 Rust 的高级类型：集合类型
     let mut s = String::from("hello ");
     s.push('r');
     println!("push() -> {}", s);
@@ -141,7 +140,7 @@ fn it_string_op() {
 }
 
 #[test]
-fn it_string_convert() {
+fn it_string_ref() {
     fn first_word1(s: &String) -> &str {
         &s[..1]
     }
@@ -154,10 +153,75 @@ fn it_string_convert() {
     println!("first word: {}", word);
 
     // 这里 &s 是 &String 类型，但是 first_word 函数需要的是 &str 类型
-    // 尽管两个类型不一样，但是代码仍然可以工作，原因是 &String 会被隐式地转换成 &str 类型（取引用）
+    // 尽管两个类型不一样，但是代码仍然可以工作，原因是 &String 会被隐式地（取引用）转换成 &str 类型
     let word = first_word2(&s);
     println!("first word: {}", word);
 }
+
+#[test]
+fn it_str_convert() {
+    // &str and String
+    let s1 = "hello, world";
+    let s2 = s1.to_string();
+    let s3: &str = &s2;
+    println!("str {}", s3);
+
+    fn greeting(s: &str) {
+        println!("{}", s)
+    }
+
+    // Box<str> and &str
+    let s: Box<str> = "hello, world".into();
+    greeting(&s); // & 可以用来将 Box<str> 转换为 &str 类型
+}
+
+// array, slice
+
+#[test]
+fn it_array_and_slice() {
+    use std::mem::size_of_val;
+
+    let a = [1, 2, 3, 4, 5];
+    let s = &a[1..3];
+    assert_eq!(s, &[2, 3]);
+
+    // 一个切片引用占用了 2 个字大小的内存空间。切片的第 1 个字是指向数据的指针，第 2 个字是切片的长度
+    // 在 x86-64 上，字的大小是 64 位也就是 8 个字节，那么一个切片引用就是 16 个字节大小
+    println!("size of slice: {} (bytes)", size_of_val(s));
+
+    // 数组分配在栈上，std::mem::size_of_val 函数返回整个数组占用的内存空间
+    // 数组中 char 是 Unicode 字符，的每个 char 元素占用 4 字节的内存空间
+    let arr: [char; 3] = ['a', 'b', 'c'];
+    println!("size of array: {} (bytes)", size_of_val(&arr));
+}
+
+#[test]
+fn it_2d_array() {
+    let one = [1, 2, 3];
+    let two: [u8; 3] = [1, 2, 3];
+    let blank1 = [0; 3];
+    let blank2: [u8; 3] = [0; 3];
+
+    let arrays: [[u8; 3]; 4] = [one, two, blank1, blank2];
+
+    for a in &arrays {
+        print!("{:?}: ", a);
+        for n in a.iter() {
+            print!("\t{} + 10 = {}", n, n + 10);
+        }
+
+        let mut sum = 0;
+        for i in 0..a.len() {
+            sum += a[i];
+        }
+        println!("\t({:?} = {})", a, sum);
+    }
+}
+
+// tuple
+// TODO:
+
+// struct
 
 #[test]
 fn it_debug_struct() {
@@ -176,6 +240,8 @@ fn it_debug_struct() {
 
     dbg!(rect);
 }
+
+// enum
 
 #[test]
 fn it_option() {
@@ -225,6 +291,8 @@ fn it_enum_match() {
     }
 }
 
+// trait
+
 #[test]
 fn it_trait_object() {
     trait IPAddr {
@@ -254,6 +322,8 @@ fn it_trait_object() {
     }
 }
 
+// 类型转换
+
 #[test]
 fn it_int_type_convert() {
     let b: i16 = 1500;
@@ -266,6 +336,8 @@ fn it_int_type_convert() {
     };
     println!("b: {}", b);
 }
+
+// 错误处理
 
 #[test]
 fn it_error_handle() {

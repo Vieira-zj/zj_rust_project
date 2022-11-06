@@ -1,7 +1,9 @@
 use world_hello;
 use world_hello::tutorial;
 
-// integration test for fn of lib
+// integration test
+
+// fn of src lib
 
 #[test]
 fn it_add_point() {
@@ -21,4 +23,13 @@ fn it_add_point() {
     let p3 = Point { x: 1i32, y: 1i32 };
     let p4 = Point { x: 2i32, y: 2i32 };
     println!("{:?}", add_point(p3, p4));
+}
+
+// print
+
+#[test]
+fn it_print_ref_addr() {
+    let x = 5;
+    let y = &x;
+    println!("address of x: {:p}", y);
 }
