@@ -14,6 +14,9 @@ fn it_add_two() {
 
 #[test]
 fn it_var_assign_value() {
+    let x = 1;
+    println!("x value: {}, {}", x, &x);
+
     struct TmpStruct {
         e: i32,
     }
@@ -218,9 +221,25 @@ fn it_array_and_slice() {
     println!("size of slice: {} (bytes)", size_of_val(s));
 
     // 数组分配在栈上，std::mem::size_of_val 函数返回整个数组占用的内存空间
-    // 数组中 char 是 Unicode 字符，的每个 char 元素占用 4 字节的内存空间
+    // 数组中 char 是 unicode 字符，的每个 char 元素占用 4 字节的内存空间
     let arr: [char; 3] = ['a', 'b', 'c'];
     println!("size of array: {} (bytes)", size_of_val(&arr));
+}
+
+#[test]
+fn it_display_array() {
+    // 只要使用数组切片，然后传入 arr 的不可变引用，就可以打印任意长度的 i32 数组
+    fn display_array(arr: &[i32]) {
+        println!("values: {:?}", arr);
+    }
+
+    let arr: [i32; 3] = [1, 2, 3];
+    display_array(&arr);
+    let arr: [i32; 2] = [1, 2];
+    display_array(&arr);
+
+    let vect = vec![4, 5, 6];
+    display_array(&vect);
 }
 
 #[test]
