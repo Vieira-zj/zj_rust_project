@@ -204,6 +204,8 @@ fn it_str_convert() {
     greeting(&s); // & 可以用来将 Box<str> 转换为 &str 类型
 }
 
+// TODO: https://zh.practice.rs/collections/String.html
+
 //
 // array, slice
 //

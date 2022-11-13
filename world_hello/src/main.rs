@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::fmt;
 use std::io;
 
@@ -9,11 +10,22 @@ fn greet_world() {
 fn main() {
     if false {
         greet_world();
+        word_count();
         get_value_by_input_idx();
     }
 
     display_trait_sample();
     println!("done");
+}
+
+fn word_count() {
+    let text = "hello world wonderful world";
+    let mut map = HashMap::new();
+    for word in text.split_whitespace() {
+        let count = map.entry(word).or_insert(0);
+        *count += 1
+    }
+    println!("word count: {:?}", map);
 }
 
 fn get_value_by_input_idx() -> () {

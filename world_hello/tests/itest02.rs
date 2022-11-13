@@ -539,7 +539,7 @@ fn it_trait_object_01() {
 }
 
 #[test]
-fn it_trait_object_02() {
+fn it_ipaddrs_by_trait_object() {
     trait IPAddr {
         fn display(&self);
     }
@@ -564,5 +564,26 @@ fn it_trait_object_02() {
     ];
     for ip in ips {
         ip.display();
+    }
+}
+
+#[test]
+fn it_ipaddrs_by_enum() {
+    #[derive(Debug)]
+    enum IPAddr {
+        V4(String),
+        V6(String),
+    }
+
+    fn show_ip(ip: &IPAddr) {
+        println!("{:?}", ip);
+    }
+
+    let v = vec![
+        IPAddr::V4(String::from("127.0.0.1")),
+        IPAddr::V6("::1".to_string()),
+    ];
+    for ip in &v {
+        show_ip(ip);
     }
 }
