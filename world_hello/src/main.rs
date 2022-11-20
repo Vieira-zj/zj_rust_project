@@ -13,7 +13,10 @@ fn main() {
         greet_world();
         word_count();
 
-        string_handle();
+        let word = first_word("hello world");
+        println!("first word: {}", word);
+
+        string_parse();
         get_value_by_input_index();
 
         read_file_sample_01();
@@ -27,7 +30,27 @@ fn main() {
 
 // common samples
 
-fn string_handle() {
+fn first_word(s: &str) -> &str {
+    let bytes = s.as_bytes();
+    for (i, &item) in bytes.iter().enumerate() {
+        if item == b' ' {
+            return &s[0..i];
+        }
+    }
+    &s[..]
+}
+
+fn word_count() {
+    let text = "hello world wonderful world";
+    let mut map = HashMap::new();
+    for word in text.split_whitespace() {
+        let count = map.entry(word).or_insert(0);
+        *count += 1
+    }
+    println!("word count: {:?}", map);
+}
+
+fn string_parse() {
     let penguin_data = "\
    common name,length (cm)
    Little penguin,33
@@ -69,16 +92,6 @@ fn get_value_by_input_index() -> () {
 
     let element = a[idx];
     println!("The value of the element at index {} is: {}", idx, element);
-}
-
-fn word_count() {
-    let text = "hello world wonderful world";
-    let mut map = HashMap::new();
-    for word in text.split_whitespace() {
-        let count = map.entry(word).or_insert(0);
-        *count += 1
-    }
-    println!("word count: {:?}", map);
 }
 
 // read file samples
