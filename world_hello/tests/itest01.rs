@@ -116,6 +116,21 @@ fn it_reference_value() {
 //
 // String, &str
 //
+// String 是 UTF-8 编码、可增长的动态字符串，分配在堆上，同时对于它所拥有的内容拥有所有权。
+// &str 是切片引用类型（&[u8]），指向一个合法的 UTF-8 字符序列，总之，&str 和 String 的关系类似于 &[T] 和 Vec<T>.
+//
+
+#[test]
+fn it_string_capacity() {
+    // 事实上 String 是一个智能指针，它作为一个结构体存储在栈上，然后指向存储在堆上的字符串底层数据。
+    let mut s = String::new();
+    println!("{}", s.capacity());
+
+    for _ in 0..2 {
+        s.push_str("hello");
+        println!("{}", s.capacity());
+    }
+}
 
 #[test]
 fn it_update_string() {
@@ -130,6 +145,9 @@ fn it_update_string() {
     s.push_str(" (test)");
     s += "!";
     println!("string: {}", s);
+
+    let sub = &s[..5];
+    println!("sub string: {}", sub)
 }
 
 #[test]
@@ -189,22 +207,44 @@ fn it_string_ref() {
 
 #[test]
 fn it_str_convert() {
-    // &str and String
+    // &str => String
     let s1 = "hello, world";
     let s2 = s1.to_string();
-    let s3: &str = &s2;
-    println!("str {}", s3);
+    println!("string {}", s2);
+
+    // String => &str
+    let mut str1 = String::from("hello, world");
+    let str2 = str1.as_str();
+    println!("str {}", str2);
+
+    let str3 = &mut str1;
+    str3.push('!');
+    println!("string {}", str3);
 
     fn greeting(s: &str) {
         println!("{}", s)
     }
 
-    // Box<str> and &str
+    // Box<str> => &str
     let s: Box<str> = "hello, world".into();
     greeting(&s); // & 可以用来将 Box<str> 转换为 &str 类型
 }
 
-// TODO: https://zh.practice.rs/collections/String.html
+#[test]
+fn it_str_index() {
+    let s = String::from("hello, 世界");
+    let s1 = &s[..1];
+    assert_eq!(s1, "h");
+
+    let s2 = &s[7..10]; // 汉字在 UTF-8 编码中占用 3 个字节
+    assert_eq!(s2, "世");
+
+    for (i, c) in s.chars().enumerate() {
+        if i == 7 {
+            assert_eq!(c, '世');
+        }
+    }
+}
 
 //
 // array, slice

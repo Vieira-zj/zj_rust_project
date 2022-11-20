@@ -1,6 +1,12 @@
 //
 // Vector
 //
+// array 由于它的元素类型大小固定，且长度也是固定，因此数组 array 是存储在栈上。
+// vector 是存储在堆上，因此长度可以动态改变。
+// array 与 vector 的关系跟 &str 与 String 的关系很像，前者是长度固定的字符串切片，后者是可动态增长的字符串。
+//
+
+use std::io::Read;
 
 #[test]
 fn it_vector_common_01() {
@@ -247,7 +253,71 @@ fn it_hashmap_capacity() {
 //
 
 #[test]
-fn it_error_handle() {
+#[should_panic(expected = "No such file or directory")]
+fn it_unwrap_error_handle() {
+    use std::fs::File;
+    let path = "/tmp/test/log.txt";
+    let _ = File::open(path).unwrap();
+}
+
+#[test]
+#[should_panic(expected = "failed to open")]
+fn it_expect_error_handle() {
+    use std::fs::File;
+    let path = "/tmp/test/log.txt";
+    // expect 自定义错误提示信息
+    let _ = File::open(path).expect(&format!("failed to open {}", path));
+}
+
+#[test]
+fn it_match_error_kind() {
+    use std::fs::File;
+    use std::io::ErrorKind;
+
+    let path = "/tmp/test/log.txt";
+    let f = File::open(path);
+    let _ = match f {
+        Ok(file) => file,
+        Err(error) => match error.kind() {
+            ErrorKind::NotFound => match File::create(path) {
+                Ok(fc) => {
+                    println!("create file: {}", path);
+                    fc
+                }
+                Err(err) => panic!("problem creating file: {:?}", err),
+            },
+            other_error => panic!("problem opening file: {:?}", other_error),
+        },
+    };
+}
+
+#[test]
+fn it_fread_result_handle() {
+    use std::fs::File;
+    use std::io;
+
+    fn read_from_file() -> Result<String, io::Error> {
+        let f = File::open("/tmp/test/log.txt");
+        let mut f = match f {
+            Ok(file) => file,
+            Err(e) => return Err(e), // 直接返回错误
+        };
+
+        let mut s = String::new();
+        match f.read_to_string(&mut s) {
+            Ok(_) => Ok(s),
+            Err(e) => Err(e),
+        }
+    }
+
+    match read_from_file() {
+        Ok(s) => println!("read content:\n{}", s),
+        Err(e) => println!("read error: {}", e),
+    }
+}
+
+#[test]
+fn it_fread_throw_error() {
     use std::fs::File;
     use std::io;
     use std::io::Read;
@@ -264,5 +334,9 @@ fn it_error_handle() {
         Err(e) => println!("read error: {}", e),
     };
 }
+
+//
+// 生命周期
+//
 
 // TODO:

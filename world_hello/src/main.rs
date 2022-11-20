@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::fmt;
-use std::io;
+use std::fs::File;
+use std::io::Read;
 
 fn greet_world() {
     let hello = "World, hello";
@@ -11,11 +12,63 @@ fn main() {
     if false {
         greet_world();
         word_count();
-        get_value_by_input_idx();
+
+        string_handle();
+        get_value_by_input_index();
+
+        read_file_sample_01();
+        read_file_sample_02();
+
+        display_trait_sample();
     }
 
-    display_trait_sample();
     println!("done");
+}
+
+// common samples
+
+fn string_handle() {
+    let penguin_data = "\
+   common name,length (cm)
+   Little penguin,33
+   Yellow-eyed penguin,65
+   Fiordland penguin,60
+   Invalid,data
+   ";
+
+    let records = penguin_data.lines();
+    for (i, record) in records.enumerate() {
+        if i == 0 || record.trim().len() == 0 {
+            continue;
+        }
+
+        let fields: Vec<_> = record.split(",").map(|field| field.trim()).collect();
+        if cfg!(debug_assertions) {
+            // 只在 debug 模式下生效
+            eprintln!("debug: {:?} -> {:?}", record, fields);
+        }
+
+        let name = fields[0];
+        if let Ok(length) = fields[1].parse::<f32>() {
+            println!("{}, {}cm", name, length);
+        }
+    }
+}
+
+fn get_value_by_input_index() -> () {
+    let a = [1, 2, 3, 4, 5];
+
+    println!("Please enter an array index:");
+
+    let mut idx = String::new();
+    std::io::stdin()
+        .read_line(&mut idx)
+        .expect("Failed to read line");
+
+    let idx: usize = idx.trim().parse().expect("Index entered was not a number");
+
+    let element = a[idx];
+    println!("The value of the element at index {} is: {}", idx, element);
 }
 
 fn word_count() {
@@ -28,38 +81,46 @@ fn word_count() {
     println!("word count: {:?}", map);
 }
 
-fn get_value_by_input_idx() -> () {
-    let a = [1, 2, 3, 4, 5];
+// read file samples
 
-    println!("Please enter an array index:");
+fn read_file_sample_01() {
+    let path = "/tmp/test/log.txt";
+    match read_from_file(path) {
+        Ok(s) => println!("read file:\n{}", s),
+        Err(e) => println!("read {} error: {}", path, e),
+    };
+}
 
-    let mut idx = String::new();
-    io::stdin()
-        .read_line(&mut idx)
-        .expect("Failed to read line");
+fn read_from_file(path: &str) -> Result<String, std::io::Error> {
+    let mut s = String::new();
+    File::open(path)?.read_to_string(&mut s)?;
+    Ok(s)
+}
 
-    let idx: usize = idx.trim().parse().expect("Index entered was not a number");
-
-    let element = a[idx];
-    println!("The value of the element at index {} is: {}", idx, element);
+fn read_file_sample_02() {
+    let path = "/tmp/test/log.txt";
+    match std::fs::read_to_string(path) {
+        Ok(s) => println!("read file:\n{}", s),
+        Err(e) => println!("read {} error: {}", path, e),
+    };
 }
 
 // trait sample
 
 #[derive(Debug, PartialEq)]
-enum FileState {
+enum TestFileState {
     Open,
     Close,
 }
 
 #[derive(Debug)]
-struct File {
+struct TestFile {
     name: String,
     _data: Vec<u8>,
-    state: FileState,
+    state: TestFileState,
 }
 
-impl fmt::Display for FileState {
+impl fmt::Display for TestFileState {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Open => write!(f, "OPEN"),
@@ -68,28 +129,28 @@ impl fmt::Display for FileState {
     }
 }
 
-impl fmt::Display for File {
+impl fmt::Display for TestFile {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "<{} ({})>", self.name, self.state)
     }
 }
 
-impl File {
-    fn new(name: &str) -> File {
+impl TestFile {
+    fn new(name: &str) -> TestFile {
         Self {
             name: String::from(name),
             _data: Vec::new(),
-            state: FileState::Close,
+            state: TestFileState::Close,
         }
     }
 
     fn open(&mut self) {
-        self.state = FileState::Open;
+        self.state = TestFileState::Open;
     }
 }
 
 fn display_trait_sample() {
-    let mut f = File::new("ftest.txt");
+    let mut f = TestFile::new("ftest.txt");
     println!("debug: {:?}", f);
     println!("display: {}", f);
 
