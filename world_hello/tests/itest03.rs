@@ -6,8 +6,6 @@
 // array 与 vector 的关系跟 &str 与 String 的关系很像，前者是长度固定的字符串切片，后者是可动态增长的字符串。
 //
 
-use std::io::Read;
-
 #[test]
 fn it_vector_common_01() {
     // create
@@ -295,6 +293,7 @@ fn it_match_error_kind() {
 fn it_fread_result_handle() {
     use std::fs::File;
     use std::io;
+    use std::io::Read;
 
     fn read_from_file() -> Result<String, io::Error> {
         let f = File::open("/tmp/test/log.txt");
@@ -403,4 +402,126 @@ fn it_lifetime_and_generic() {
     println!("longest string is {}", result);
 }
 
-// TODO: https://course.rs/advance/lifetime/advance.html
+// https://course.rs/advance/lifetime/advance.html
+
+#[test]
+fn it_lifetime_adv_hrbt() {
+    // 生命周期约束
+    struct ImportantExcerpt<'a> {
+        part: &'a str,
+    }
+
+    // &self 生命周期是 'a, 那么 self.part 的生命周期也是 'a
+    // 由于 &'a self 是被引用的一方，因此引用它的 &'b str 必须要活得比它短，否则会出现悬垂引用
+    impl<'a: 'b, 'b> ImportantExcerpt<'a> {
+        fn announce_and_return_part(&'a self, announcement: &'b str) -> &'b str {
+            println!("attention please: {}", announcement);
+            self.part
+        }
+    }
+
+    let i = ImportantExcerpt {
+        part: "lifetime sample",
+    };
+    let part = i.announce_and_return_part("it test");
+    println!("{}", part);
+}
+
+#[test]
+fn it_lifetime_adv_reborrow() {
+    #[derive(Debug)]
+    struct Point {
+        x: i32,
+        y: i32,
+    }
+
+    impl Point {
+        fn move_to(&mut self, x: i32, y: i32) {
+            self.x = x;
+            self.y = y;
+        }
+    }
+
+    let mut p = Point { x: 0, y: 0 };
+    let r = &mut p;
+
+    // reborrow
+    let rr = &*r;
+    println!("{:?}", rr);
+
+    r.move_to(10, 10);
+    println!("{:?}", r)
+}
+
+#[test]
+fn it_lifetime_adv_sample() {
+    struct Manager<'a> {
+        text: &'a str,
+    }
+
+    struct Interface<'b, 'a: 'b> {
+        _manager: &'b mut Manager<'a>,
+    }
+    impl<'b, 'a: 'b> Interface<'b, 'a> {
+        pub fn noop(self) {
+            println!("interface consumed");
+        }
+    }
+
+    struct List<'a> {
+        manager: Manager<'a>,
+    }
+    impl<'a> List<'a> {
+        pub fn get_interface<'b>(&'b mut self) -> Interface<'b, 'a>
+        where
+            'a: 'b,
+        {
+            Interface {
+                _manager: &mut self.manager,
+            }
+        }
+    }
+
+    fn use_list(list: &List) {
+        println!("{}", list.manager.text);
+    }
+
+    let mut list = List {
+        manager: Manager { text: "hello" },
+    };
+    list.get_interface().noop();
+
+    use_list(&list);
+}
+
+#[test]
+fn it_lifetime_static() {
+    use std::fmt::Display;
+
+    let r1;
+    let r2;
+    {
+        static STATIC_EXAMPLE: i32 = 42;
+        r1 = STATIC_EXAMPLE;
+        let x = "string";
+        r2 = x;
+    }
+    // r1 和 r2 持有的数据都是 'static 的，因此在花括号结束后，并不会被释放
+    println!("static i32: {}", r1);
+    println!("static str: {}", r2);
+
+    // 没有检查 T, 这里只确保 &T 的生命周期符合规则即可
+    fn static_borrow<T: Display + 'static>(t: &T) {
+        println!("{}", t);
+    }
+
+    let _r3: &str;
+    {
+        let s1 = "String".to_string();
+        static_borrow(&s1);
+
+        // s1 是 String 类型，没有 'static 的生命周期，因此下面代码会报错
+        // r3 = &s1;
+    }
+    // println!("{}", r3);
+}
