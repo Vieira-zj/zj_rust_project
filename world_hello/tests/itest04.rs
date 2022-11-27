@@ -1,5 +1,246 @@
 //
-// 闭包
+// 闭包 Closure
+//
+
+#[test]
+fn it_clousre_sample() {
+    use std::thread;
+    use std::time::Duration;
+
+    fn workout(intensity: u32, rand_num: u32) {
+        let action = || {
+            println!("muuuu......");
+            thread::sleep(Duration::from_secs(2));
+            intensity
+        };
+
+        if intensity < 25 {
+            println!("做 {} 个俯卧撑", action());
+        } else if rand_num == 3 {
+            println!("今天休息")
+        } else {
+            println!("跑步 {} 分钟", action())
+        }
+    }
+
+    workout(7, 10);
+}
+
+#[test]
+fn it_cacher_by_closure() {
+    struct Cacher<T>
+    where
+        T: Fn(u32) -> u32,
+    {
+        query: T,
+        value: Option<u32>,
+    }
+
+    impl<T> Cacher<T>
+    where
+        T: Fn(u32) -> u32,
+    {
+        fn new(query: T) -> Cacher<T> {
+            Cacher {
+                query: query,
+                value: None,
+            }
+        }
+
+        // 先查询缓存值 self.value, 若不存在，则调用 query 加载
+        fn value(&mut self, arg: u32) -> u32 {
+            match self.value {
+                Some(v) => {
+                    println!("get cached value");
+                    v
+                }
+                None => {
+                    println!("query value and cache");
+                    let v = (self.query)(arg);
+                    self.value = Some(v);
+                    v
+                }
+            }
+        }
+    }
+
+    let mut c = Cacher::new(|x| x + 1);
+    println!("get value {}", c.value(3));
+    println!("get value {}", c.value(3));
+}
+
+#[test]
+fn it_fnonce_closure() {
+    // 必须实现 Copy 特征
+    fn run_once<F>(func: F)
+    where
+        F: FnOnce(usize) -> bool + Copy,
+    {
+        println!("{}", func(3));
+        println!("{}", func(4));
+    }
+
+    let v = vec![1, 2, 3];
+    run_once(|z| z == v.len());
+}
+
+#[test]
+fn it_fnmut_closure() {
+    // 使用了 s 的可变借用，要声明为 mut f
+    fn exec<'a, F: FnMut(&'a str)>(mut f: F) {
+        f("hello")
+    }
+
+    let mut s = String::new();
+    let update_str = |str| s.push_str(str);
+    exec(update_str);
+    println!("update str: {}", s)
+}
+
+#[test]
+fn it_fn_closure() {
+    fn exec<F: Fn(String)>(f: F) {
+        f("world".to_string())
+    }
+
+    let s = String::from("hello");
+    let print_str = |str| println!("{}, {}", s, str);
+    exec(print_str);
+    println!("{:?}", s);
+}
+
+#[test]
+fn it_return_fn_closure() {
+    fn factory(x: i32) -> Box<dyn Fn(i32) -> i32> {
+        let num = 5;
+        if x > 5 {
+            return Box::new(move |a| a - num);
+        } else {
+            return Box::new(move |a| a + num);
+        }
+    }
+
+    let f = factory(1);
+    let result = f(2);
+    println!("result: {}", result);
+}
+
+//
+// 迭代器 Iterator
+//
+
+#[test]
+fn it_iterator_common() {
+    // into_iter 把数组转换成迭代器
+    let arr = [1, 2, 3];
+    for v in arr.into_iter() {
+        println!("{}", v);
+    }
+    println!();
+
+    // next()
+    let mut iter = arr.into_iter();
+    loop {
+        match iter.next() {
+            Some(v) => println!("{}", v),
+            None => break,
+        }
+    }
+}
+
+#[test]
+fn it_iter_methods() {
+    // #1. into_iter 会夺走所有权
+    let vect = vec![1, 2, 3];
+    for v in vect.into_iter() {
+        println!("{}", v);
+    }
+    // 下面的代码将报错，因为 vect 的所有权在上面 for 循环中已经被转移走
+    // println!("{:?}", vect);
+    println!();
+
+    // #2. iter 是借用
+    let vect = vec![1, 2, 3];
+    for v in vect.iter() {
+        println!("{}", v);
+    }
+    println!("{:?}", vect);
+    println!();
+
+    // #3. iter_mut 是可变借用
+    let mut vect = vec![1, 2, 3];
+    let mut iter_mut = vect.iter_mut();
+    if let Some(v) = iter_mut.next() {
+        *v = 0;
+    }
+    println!("{:?}", vect);
+}
+
+#[test]
+fn it_iterator_collect() {
+    // vector collect
+    let v1 = vec![1, 2, 3];
+    let v2: Vec<_> = v1.iter().map(|x| x + 1).collect();
+    println!("{:?}", v2);
+
+    // hashmap collect
+    use std::collections::HashMap;
+    let names = ["sunface", "sunfei"];
+    let ages = [18, 18];
+    let folks: HashMap<_, _> = names.into_iter().zip(ages.into_iter()).collect();
+    println!("{:?}", folks);
+
+    // enumerate
+    let v = vec![1u64, 2, 3, 4, 5, 6];
+    let result = v
+        .iter()
+        .enumerate()
+        .filter(|&(idx, _)| idx % 2 == 0)
+        .map(|(_, val)| val)
+        .fold(0u64, |sum, &val| sum + val); // 1+3+5 = 9
+    println!("result: {}", result);
+}
+
+#[test]
+fn it_custom_iterator() {
+    struct Counter {
+        value: u32,
+    }
+
+    impl Counter {
+        fn new() -> Self {
+            Counter { value: 0 }
+        }
+    }
+
+    impl Iterator for Counter {
+        type Item = u32;
+
+        fn next(&mut self) -> Option<Self::Item> {
+            if self.value < 5 {
+                self.value += 1;
+                Some(self.value)
+            } else {
+                None
+            }
+        }
+    }
+
+    let counter = Counter::new();
+    for val in counter {
+        println!("value: {}", val)
+    }
+
+    let sum: u32 = Counter::new()
+        .zip(Counter::new().skip(1))
+        .map(|(a, b)| a * b) // [2, 6, 12, 20]
+        .filter(|x| x % 3 == 0) // [6, 12]
+        .sum();
+    println!("sum: {}", sum)
+}
+
+//
+// 智能指针
 //
 
 // TODO:
