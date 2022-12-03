@@ -236,7 +236,79 @@ fn it_custom_iterator() {
         .map(|(a, b)| a * b) // [2, 6, 12, 20]
         .filter(|x| x % 3 == 0) // [6, 12]
         .sum();
-    println!("sum: {}", sum)
+    println!("sum: {}", sum);
+}
+
+//
+// 深入类型
+//
+
+#[test]
+fn it_type_alias_sample() {
+    // 类型别名仅仅是别名，newtype 是全新的类型
+    type Meters = u32;
+
+    let x: u32 = 5;
+    let y: Meters = 10;
+    println!("x + y = {}", x + y);
+}
+
+#[test]
+fn it_newtype_for_vec() {
+    use std::fmt;
+
+    // 为 Vec 实现 Display 特征
+    struct Wrapper(Vec<String>);
+
+    impl fmt::Display for Wrapper {
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+            write!(f, "[{}]", self.0.join(" ,"))
+        }
+    }
+
+    let w = Wrapper(vec![String::from("hello"), String::from("world")]);
+    println!("wrapper: {}", w);
+}
+
+#[test]
+fn it_newtype_for_custom_type() {
+    use std::fmt;
+    use std::ops::Add;
+
+    struct Meters(u32);
+
+    impl fmt::Display for Meters {
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+            write!(f, "distance: {} meters", self.0)
+        }
+    }
+
+    impl Add for Meters {
+        type Output = Meters;
+        fn add(self, rhs: Self) -> Self::Output {
+            Self(self.0 + rhs.0)
+        }
+    }
+
+    fn calculate_distance(d1: Meters, d2: Meters) -> Meters {
+        d1 + d2
+    }
+
+    let d = calculate_distance(Meters(10), Meters(20));
+    println!("{}", d)
+}
+
+#[test]
+fn it_sized_trait() {
+    use std::fmt;
+
+    // 特征 ?Sized 用于表明类型 T 既有可能是固定大小的类型，也可能是动态大小的类型
+    fn my_print<T: ?Sized + fmt::Display>(s: &T) {
+        println!("{}", s)
+    }
+
+    let s = "hello";
+    my_print(s);
 }
 
 //
