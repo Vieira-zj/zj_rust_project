@@ -242,3 +242,194 @@ fn it_func_ok_or_else() {
 //
 // 错误处理
 //
+
+#[test]
+fn it_custom_simple_error() {
+    use std::fmt;
+
+    #[derive(Debug)]
+    struct AppError;
+
+    impl fmt::Display for AppError {
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+            write!(f, "An Error Occurred, Please Try Again!")
+        }
+    }
+
+    fn produce_error() -> Result<(), AppError> {
+        Err(AppError)
+    }
+
+    match produce_error() {
+        Err(e) => eprintln!("{}", e),
+        _ => println!("No error"),
+    }
+    eprintln!("{:?}", produce_error());
+}
+
+#[test]
+fn it_custom_code_msg_error() {
+    use std::fmt;
+
+    struct AppError {
+        code: usize,
+        message: String,
+    }
+
+    impl fmt::Display for AppError {
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+            let err_msg = match self.code {
+                404 => "Sorry, Can not find the Page!",
+                _ => "Sorry, something is wrong! Please Try Again!",
+            };
+            write!(f, "{}", err_msg)
+        }
+    }
+
+    impl fmt::Debug for AppError {
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+            write!(
+                f,
+                "AppError {{ code: {}, message: {} }}",
+                self.code, self.message
+            )
+        }
+    }
+
+    fn produce_error() -> Result<(), AppError> {
+        Err(AppError {
+            code: 404,
+            message: "Page not found".to_string(),
+        })
+    }
+
+    match produce_error() {
+        Err(e) => eprintln!("{}", e),
+        _ => println!("No error"),
+    }
+
+    eprintln!("{:?}", produce_error());
+    eprintln!("{:#?}", produce_error());
+}
+
+#[test]
+fn it_error_convert_from() {
+    use std::fs::File;
+    use std::io::{self, Read};
+    use std::num;
+
+    #[derive(Debug)]
+    struct AppError {
+        _kind: String,
+        _message: String,
+    }
+
+    // io::Error => AppError
+    impl From<io::Error> for AppError {
+        fn from(err: io::Error) -> Self {
+            AppError {
+                _kind: "io".to_string(),
+                _message: err.to_string(),
+            }
+        }
+    }
+
+    // num::ParseIntError => AppError
+    impl From<num::ParseIntError> for AppError {
+        fn from(err: num::ParseIntError) -> Self {
+            AppError {
+                _kind: String::from("parse int"),
+                _message: err.to_string(),
+            }
+        }
+    }
+
+    fn open_file() -> Result<(), AppError> {
+        // 这里 ? 可以将错误进行隐式的强制转换：File::open 返回的是 std::io::Error, 我们并没有进行任何显式的转换，它就能自动变成 AppError
+        let mut file = File::open("/tmp/test/test.txt")?;
+        let mut content = String::new();
+        file.read_to_string(&mut content)?;
+
+        let _number: usize;
+        _number = content.parse()?;
+        Ok(())
+    }
+
+    match open_file() {
+        Ok(_) => println!("Success open file"),
+        Err(e) => eprintln!("Failed open file: {:?}", e),
+    }
+}
+
+#[test]
+#[should_panic(expected = "Environment variable not found")]
+fn it_return_generic_error() {
+    use std::fs::read_to_string;
+
+    #[derive(Debug)]
+    enum MyError {
+        EnvironmentVariableNotFound,
+        IOError(std::io::Error),
+    }
+
+    impl std::error::Error for MyError {}
+
+    impl From<std::env::VarError> for MyError {
+        fn from(_: std::env::VarError) -> Self {
+            Self::EnvironmentVariableNotFound
+        }
+    }
+
+    impl From<std::io::Error> for MyError {
+        fn from(err: std::io::Error) -> Self {
+            Self::IOError(err)
+        }
+    }
+
+    impl std::fmt::Display for MyError {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            match self {
+                Self::EnvironmentVariableNotFound => write!(f, "Environment variable not found"),
+                Self::IOError(err) => write!(f, "IO Error: {}", err.to_string()),
+            }
+        }
+    }
+
+    fn render() -> Result<String, MyError> {
+        let file = std::env::var("RUST")?;
+        let content = read_to_string(file)?;
+        Ok(content)
+    }
+
+    let content = match render() {
+        Ok(content) => content,
+        Err(err) => panic!("render failed: {}", err),
+    };
+    println!("render content: {}", content);
+}
+
+#[test]
+#[should_panic(expected = "Environment variable not found")]
+fn it_return_generic_error_by_thiserror() {
+    use std::fs::read_to_string;
+
+    #[derive(thiserror::Error, Debug)]
+    enum MyError {
+        #[error("Environment variable not found")]
+        EnvironmentVariableNotFound(#[from] std::env::VarError),
+        #[error(transparent)]
+        IOError(#[from] std::io::Error),
+    }
+
+    fn render() -> Result<String, MyError> {
+        let file = std::env::var("RUST")?;
+        let content = read_to_string(file)?;
+        Ok(content)
+    }
+
+    let content = match render() {
+        Ok(content) => content,
+        Err(err) => panic!("render failed: {}", err),
+    };
+    println!("render content: {}", content);
+}
