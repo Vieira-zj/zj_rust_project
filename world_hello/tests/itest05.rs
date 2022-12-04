@@ -240,7 +240,7 @@ fn it_func_ok_or_else() {
 }
 
 //
-// 错误处理
+// 自定义错误
 //
 
 #[test]
@@ -432,4 +432,79 @@ fn it_return_generic_error_by_thiserror() {
         Err(err) => panic!("render failed: {}", err),
     };
     println!("render content: {}", content);
+}
+
+//
+// Unsafe
+//
+
+#[test]
+fn it_get_raw_pointer_from_ref() {
+    let num = 5;
+    let p = &num as *const i32;
+
+    unsafe {
+        println!("number is {}", *p);
+    }
+}
+
+#[test]
+fn it_get_raw_pointer_from_addr() {
+    use std::{slice::from_raw_parts, str::from_utf8_unchecked};
+
+    // 获取字符串的内存地址和长度
+    fn get_memory_location() -> (usize, usize) {
+        let s = "hello world";
+        let p = s.as_ptr() as usize;
+        let len = s.len();
+        (p, len)
+    }
+
+    // 在指定的内存地址读取字符串
+    fn get_str_at_location(pointer: usize, length: usize) -> &'static str {
+        unsafe { from_utf8_unchecked(from_raw_parts(pointer as *const u8, length)) }
+    }
+
+    let (pointer, length) = get_memory_location();
+    let s = get_str_at_location(pointer, length);
+    println!("The {} bytes at 0x{:X} stored: {}", length, pointer, s)
+}
+
+#[test]
+fn it_unsafe_within_wrapped_func() {
+    use std::slice;
+
+    fn split_at_mut(slice: &mut [i32], mid: usize) -> (&mut [i32], &mut [i32]) {
+        let len = slice.len();
+        let ptr = slice.as_mut_ptr();
+        assert!(mid <= len);
+
+        unsafe {
+            (
+                slice::from_raw_parts_mut(ptr, mid),
+                slice::from_raw_parts_mut(ptr.add(mid), len - mid),
+            )
+        }
+    }
+
+    let mut v = vec![1, 2, 3, 4, 5, 6];
+    let r = &mut v[..];
+    let (a, b) = split_at_mut(r, 3);
+
+    assert_eq!(a, &mut [1, 2, 3]);
+    assert_eq!(b, &mut [4, 5, 6]);
+    println!("a: {:?}", a);
+    println!("b: {:?}", b);
+}
+
+#[test]
+fn it_unsafe_ffi_for_c() {
+    // 调用 C 标准库中的 abs 函数
+    extern "C" {
+        fn abs(input: i32) -> i32;
+    }
+
+    unsafe {
+        println!("Absolute value of -3 according to C: {}", abs(-3));
+    }
 }
