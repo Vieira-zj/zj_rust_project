@@ -303,6 +303,7 @@ fn it_sized_trait() {
     use std::fmt;
 
     // 特征 ?Sized 用于表明类型 T 既有可能是固定大小的类型，也可能是动态大小的类型
+    // 函数参数类型从 T 变成了 &T, 因为 T 可能是动态大小的，因此需要用一个固定大小的指针（引用）来包裹它
     fn my_print<T: ?Sized + fmt::Display>(s: &T) {
         println!("{}", s)
     }
@@ -311,8 +312,61 @@ fn it_sized_trait() {
     my_print(s);
 }
 
+#[test]
+fn it_tryinto_int_to_enum() {
+    use std::convert::TryFrom;
+
+    enum MyEnum {
+        A = 1,
+        B,
+        C,
+    }
+
+    impl TryFrom<i32> for MyEnum {
+        type Error = ();
+
+        fn try_from(value: i32) -> Result<Self, Self::Error> {
+            match value {
+                x if x == MyEnum::A as i32 => Ok(MyEnum::A),
+                x if x == MyEnum::B as i32 => Ok(MyEnum::B),
+                x if x == MyEnum::C as i32 => Ok(MyEnum::C),
+                _ => Err(()),
+            }
+        }
+    }
+
+    let x = MyEnum::C as i32;
+    match x.try_into() {
+        Ok(MyEnum::A) => println!("a"),
+        Ok(MyEnum::B) => println!("b"),
+        Ok(MyEnum::C) => println!("c"),
+        Err(_) => eprintln!("unknown number"),
+    }
+}
+
+#[test]
+fn it_transmute_int_to_enum() {
+    // 使用 #[repr(..)] 来控制底层类型的大小，免得本来需要 i32, 结果传入 i64, 最终内存无法对齐，产生非预期的结果
+    #[repr(i32)]
+    enum MyEnum {
+        _A = 1,
+        _B,
+        C,
+    }
+
+    let x = MyEnum::C;
+    let y = x as i32;
+    let z: MyEnum = unsafe { std::mem::transmute(y) };
+
+    // 数值一定不会超过枚举的范围
+    match z {
+        MyEnum::_A => println!("found A"),
+        MyEnum::_B => println!("found B"),
+        MyEnum::C => println!("found C"),
+    }
+}
+
 //
 // 智能指针
+// https://course.rs/advance/smart-pointer/intro.html
 //
-
-// TODO: https://course.rs/advance/smart-pointer/intro.html

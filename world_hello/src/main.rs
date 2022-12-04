@@ -9,6 +9,11 @@ fn greet_world() {
 }
 
 fn main() {
+    unsafe {
+        CONFIG = init_config();
+        println!("{:?}", CONFIG);
+    }
+
     if false {
         greet_world();
         word_count();
@@ -169,4 +174,23 @@ fn display_trait_sample() {
 
     f.open();
     println!("after open: {}", f);
+}
+
+// global config
+
+#[allow(dead_code)]
+#[derive(Debug)]
+struct Config {
+    a: String,
+    b: String,
+}
+
+static mut CONFIG: Option<&mut Config> = None;
+
+fn init_config() -> Option<&'static mut Config> {
+    let c = Box::new(Config {
+        a: "A".to_string(),
+        b: "B".to_string(),
+    });
+    Some(Box::leak(c))
 }

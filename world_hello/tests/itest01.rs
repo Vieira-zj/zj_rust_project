@@ -10,6 +10,7 @@ fn it_add_two() {
 
 //
 // basic
+// https://course.rs/first-try/hello-world.html
 //
 
 #[test]
