@@ -40,6 +40,12 @@ cargo test
 cargo test -- --show-output
 ```
 
+Create a lib `hello_macro_derive` for custom macro demo:
+
+```sh
+cargo new hello_macro_derive --lib
+```
+
 ### Project Structure
 
 Refer: <https://github.com/ellie/atuin>

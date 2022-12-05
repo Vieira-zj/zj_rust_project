@@ -30,6 +30,7 @@ fn main() {
         display_trait_sample();
     }
 
+    custom_macro_sample();
     println!("done");
 }
 
@@ -193,4 +194,20 @@ fn init_config() -> Option<&'static mut Config> {
         b: "B".to_string(),
     });
     Some(Box::leak(c))
+}
+
+// 自定义 derive 过程宏
+
+fn custom_macro_sample() {
+    use hello_macro_derive::HelloMacro;
+    use world_hello::HelloMacro;
+
+    #[derive(HelloMacro)]
+    struct Sunfei;
+
+    #[derive(HelloMacro)]
+    struct Sunface;
+
+    Sunfei::hello_macro();
+    Sunface::hello_macro();
 }

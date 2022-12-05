@@ -1,5 +1,11 @@
 pub mod tutorial;
 
+// trait for macro
+
+pub trait HelloMacro {
+    fn hello_macro();
+}
+
 // fn for integration test
 
 pub fn add_two(a: i32) -> i32 {

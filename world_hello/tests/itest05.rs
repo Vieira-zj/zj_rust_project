@@ -440,11 +440,15 @@ fn it_return_generic_error_by_thiserror() {
 
 #[test]
 fn it_get_raw_pointer_from_ref() {
-    let num = 5;
-    let p = &num as *const i32;
+    let mut num = 5;
+    let p1 = &num as *const i32;
+    let p2 = &mut num as *mut i32;
 
     unsafe {
-        println!("number is {}", *p);
+        println!("number is {}", *p1);
+
+        *p2 = *p1 + 1;
+        println!("*p1={}, *p2={}", *p1, *p2);
     }
 }
 
@@ -479,6 +483,8 @@ fn it_unsafe_within_wrapped_func() {
         let ptr = slice.as_mut_ptr();
         assert!(mid <= len);
 
+        // i32 类型每个元素都占用了 4 个字节
+        // 这里使用 ptr.add(mid) 代替 ptr + 4 * mid
         unsafe {
             (
                 slice::from_raw_parts_mut(ptr, mid),
