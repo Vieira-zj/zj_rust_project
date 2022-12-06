@@ -371,4 +371,218 @@ fn it_transmute_int_to_enum() {
 // https://course.rs/advance/smart-pointer/intro.html
 //
 
-// TODO:
+#[test]
+fn it_pointer_box_in_vec() {
+    let arr = vec![Box::new(1), Box::new(2)];
+    // 使用 & 借用数组中的元素，否则会报所有权错误
+    let (first, second) = (&arr[0], &arr[1]);
+    // 使用 ** 做两次解引用，第一次将 &Box<i32> 类型转成 Box<i32>, 第二次将 Box<i32> 转成 i32
+    let sum = **first + **second;
+    println!("sum: {}", sum);
+}
+
+#[test]
+fn it_pointer_box_leak() {
+    fn gen_static_str() -> &'static str {
+        let mut s = String::new();
+        s.push_str("hello, world");
+        Box::leak(s.into_boxed_str())
+    }
+
+    let s = gen_static_str();
+    println!("static string: {}", s);
+}
+
+#[test]
+fn it_defer_ref() {
+    let x = 5;
+    let y = &x;
+    let z = &x;
+    assert_eq!(5, *y);
+    println!("y={}", *y);
+    println!("z={}", z);
+
+    let b = Box::new(1);
+    let sum = *y + *b;
+    println!("sum: {}", sum);
+}
+
+#[test]
+fn it_deref_in_method_args() {
+    fn display(s: &str) {
+        println!("display: {}", s);
+    }
+
+    let b = Box::new(String::from("hello"));
+    assert_eq!("hello", *b);
+    // MyBox => String => &str
+    // 必须使用 &s 的方式来触发 Deref
+    display(&b);
+}
+
+#[test]
+fn it_custom_deref_struct() {
+    use std::ops::Deref;
+
+    struct MyBox<T>(T);
+
+    impl<T> MyBox<T> {
+        fn new(x: T) -> MyBox<T> {
+            Self(x)
+        }
+    }
+
+    impl<T> Deref for MyBox<T> {
+        type Target = T;
+        fn deref(&self) -> &Self::Target {
+            // 返回常规引用
+            &(self.0)
+        }
+    }
+
+    fn print_box_value(x: i32) {
+        println!("box value: {}", x);
+    }
+
+    fn print_box_value_by_ref(x: &i32) {
+        println!("box value: {}", x);
+    }
+
+    let x = MyBox::new(5);
+    assert_eq!(5, *x);
+
+    print_box_value(*x);
+    print_box_value_by_ref(&x);
+}
+
+#[test]
+fn it_custom_derefmut_struct() {
+    use std::ops::Deref;
+    use std::ops::DerefMut;
+
+    struct MyBox<T> {
+        v: T,
+    }
+
+    impl<T> MyBox<T> {
+        fn new(x: T) -> MyBox<T> {
+            Self { v: x }
+        }
+    }
+
+    impl<T> Deref for MyBox<T> {
+        type Target = T;
+        fn deref(&self) -> &Self::Target {
+            &(self.v)
+        }
+    }
+
+    // 要实现 DerefMut 必须要先实现 Deref 特征
+    impl<T> DerefMut for MyBox<T> {
+        fn deref_mut(&mut self) -> &mut Self::Target {
+            &mut self.v
+        }
+    }
+
+    fn display(s: &mut String) {
+        s.push_str(" world");
+        println!("display: {}", s);
+    }
+
+    let mut b = MyBox::new(String::from("hello"));
+    // &mut MyBox<String> => &mut String
+    display(&mut b);
+}
+
+#[test]
+fn it_custom_drop_struct() {
+    struct HasDrop1;
+    impl Drop for HasDrop1 {
+        fn drop(&mut self) {
+            println!("Dropping HasDrop1!");
+        }
+    }
+
+    struct HasDrop2;
+    impl Drop for HasDrop2 {
+        fn drop(&mut self) {
+            println!("Dropping HasDrop2!");
+        }
+    }
+
+    struct HasTwoDrops {
+        _one: HasDrop1,
+        _two: HasDrop2,
+    }
+    impl Drop for HasTwoDrops {
+        fn drop(&mut self) {
+            println!("Dropping HasTwoDrops!");
+        }
+    }
+
+    struct Foo;
+    impl Drop for Foo {
+        fn drop(&mut self) {
+            println!("Dropping Foo!")
+        }
+    }
+
+    let _x = HasTwoDrops {
+        _two: HasDrop2 {},
+        _one: HasDrop1 {},
+    };
+    let _f = Foo {};
+    println!("running...");
+}
+
+#[test]
+fn it_pointer_rc_clone() {
+    use std::rc::Rc;
+
+    let a = Rc::new(String::from("hello"));
+    println!("count after creating a = {}", Rc::strong_count(&a));
+    let b = Rc::clone(&a);
+    println!("count after creating b = {}", Rc::strong_count(&b));
+
+    {
+        let c = Rc::clone(&a);
+        println!("count after creating c = {}", Rc::strong_count(&c));
+    }
+    println!("count after c goes out of scope = {}", Rc::strong_count(&a));
+}
+
+#[test]
+fn it_pointer_rc_sample() {
+    use std::rc::Rc;
+
+    struct Owner {
+        name: String,
+    }
+
+    struct Gadget {
+        id: i32,
+        owner: Rc<Owner>,
+    }
+
+    let gadget_owner = Rc::new(Owner {
+        name: "Foo".to_string(),
+    });
+
+    let gadget1 = Gadget {
+        id: 1,
+        owner: Rc::clone(&gadget_owner),
+    };
+    let gadget2 = Gadget {
+        id: 2,
+        owner: Rc::clone(&gadget_owner),
+    };
+
+    // 存在 3 个指向 Foo 的智能指针引用，这里仅仅 drop 掉其中 1 个智能指针引用（不是 drop 掉 owner 数据）
+    // 仍然还有 2 个引用指向底层的 owner 数据
+    drop(gadget_owner);
+
+    println!("gadget {} owned by {}", gadget1.id, gadget1.owner.name);
+    println!("gadget {} owned by {}", gadget2.id, gadget2.owner.name);
+
+    println!("ref count: {}", Rc::strong_count(&gadget1.owner));
+}
