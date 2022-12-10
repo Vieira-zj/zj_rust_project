@@ -586,3 +586,123 @@ fn it_pointer_rc_sample() {
 
     println!("ref count: {}", Rc::strong_count(&gadget1.owner));
 }
+
+#[test]
+fn it_pointer_arc() {
+    use std::sync::Arc;
+    use std::thread;
+    use std::time::Duration;
+
+    let s = Arc::new(String::from("var_in_multiple_threads"));
+    let mut handlers = Vec::with_capacity(6);
+    for _ in 1..10 {
+        let s = Arc::clone(&s);
+        let handle = thread::spawn(move || {
+            thread::sleep(Duration::from_millis(300));
+            println!("{}", s)
+        });
+        handlers.push(handle);
+    }
+
+    for handle in handlers {
+        handle.join().unwrap();
+    }
+    println!("all threads done");
+}
+
+#[test]
+fn it_pointer_cell() {
+    use std::cell::Cell;
+
+    let x = Cell::new(1);
+    let y = &x;
+    let z = &x;
+    x.set(2);
+    y.set(3);
+    z.set(4);
+    println!("{}", x.get());
+
+    // let mut x = 1;
+    // let y = &mut x;
+    // let z = &mut x;
+    // x = 2;
+    // *y = 3;
+    // *z = 4;
+    // println!("{}", x);
+}
+
+#[test]
+fn it_pointer_cell_from_mut() {
+    use std::cell::Cell;
+
+    fn is_even(i: i32) -> bool {
+        i % 2 == 0
+    }
+
+    // Cell 上的 set 方法获取的是不可变引用 pub fn set(&self, val: T)
+    fn retain_even(nums: &mut Vec<i32>) {
+        let s = Cell::from_mut(&mut nums[..]).as_slice_of_cells();
+        let mut i = 0;
+        for num in s.iter().filter(|num| is_even(num.get())) {
+            s[i].set(num.get());
+            i += 1;
+        }
+        nums.truncate(i);
+    }
+
+    let mut nums = vec![1, 2, 3, 4, 5, 6, 7];
+    retain_even(&mut nums);
+    println!("even nums: {:?}", nums);
+}
+
+#[test]
+#[should_panic(expected = "already borrowed: BorrowMutError")]
+fn it_pointer_refcell() {
+    // RefCell 实际上并没有解决可变引用和引用可以共存的问题，只是将报错从编译期推迟到运行时 panic
+    use std::cell::RefCell;
+
+    let s = String::from("hello");
+    let rc = RefCell::new(s);
+    let s1 = rc.borrow();
+    let s2 = rc.borrow_mut();
+    println!("{}, {}", s1, s2);
+}
+
+#[test]
+fn it_pointer_refcell_sample() {
+    use std::cell::RefCell;
+
+    trait Messager {
+        fn send(&self, msg: String);
+    }
+
+    // 通过包裹一层 RefCell, 成功的让 &self 中的 msg_cache 成为一个可变值，然后实现对其的修改
+    struct MsgQueue {
+        msg_cache: RefCell<Vec<String>>,
+    }
+    impl Messager for MsgQueue {
+        fn send(&self, msg: String) {
+            self.msg_cache.borrow_mut().push(msg)
+        }
+    }
+
+    let mq = MsgQueue {
+        msg_cache: RefCell::new(Vec::new()),
+    };
+    mq.send("hello".to_string());
+    mq.send("world".to_string());
+    println!("{}", mq.msg_cache.borrow().join(", ").as_str());
+}
+
+#[test]
+fn it_pointer_rc_refcell() {
+    use std::cell::RefCell;
+    use std::rc::Rc;
+
+    let s = Rc::new(RefCell::new("hello".to_string()));
+    let s1 = s.clone();
+    let s2 = s.clone();
+    s2.borrow_mut().push_str(", rust");
+
+    println!("{:?}\n{:?}\n{:?}", s, s1, s2);
+}
