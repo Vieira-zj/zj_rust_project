@@ -1,6 +1,189 @@
 //
+// 循环引用与自引用
+// https://course.rs/advance/circle-self-ref/circle-reference.html
+//
+
+#[test]
+fn it_weak_ref() {
+    use std::rc::Rc;
+
+    let five = Rc::new(5);
+    let weak_five = Rc::downgrade(&five);
+
+    let strong_five = weak_five.upgrade();
+    if let Some(v) = strong_five {
+        println!("{}, {}", v, *v);
+    }
+
+    drop(five);
+
+    let strong_five = weak_five.upgrade();
+    assert_eq!(strong_five, None);
+}
+
+#[test]
+fn it_weak_ref_sample() {
+    use std::cell::RefCell;
+    use std::rc::{Rc, Weak};
+
+    struct Owner {
+        name: String,
+        gadgets: RefCell<Vec<Weak<Gadget>>>,
+    }
+
+    struct Gadget {
+        id: i32,
+        owner: Rc<Owner>,
+    }
+
+    let gadget_owner = Rc::new(Owner {
+        name: "Gadget Man".to_string(),
+        gadgets: RefCell::new(Vec::new()),
+    });
+
+    let gadget1 = Rc::new(Gadget {
+        id: 1,
+        owner: gadget_owner.clone(),
+    });
+    let gadget2 = Rc::new(Gadget {
+        id: 2,
+        owner: gadget_owner.clone(),
+    });
+
+    gadget_owner
+        .gadgets
+        .borrow_mut()
+        .push(Rc::downgrade(&gadget1));
+    gadget_owner
+        .gadgets
+        .borrow_mut()
+        .push(Rc::downgrade(&gadget2));
+
+    for gadget_opt in gadget_owner.gadgets.borrow().iter() {
+        let gadget = gadget_opt.upgrade().unwrap();
+        println!("Gadget {} owned by {}", gadget.id, gadget.owner.name);
+    }
+}
+
+#[test]
+fn it_weak_ref_tree_sample() {
+    use std::cell::RefCell;
+    use std::rc::{Rc, Weak};
+
+    #[derive(Debug)]
+    struct Node {
+        _value: i32,
+        parent: RefCell<Weak<Node>>,
+        _children: RefCell<Vec<Rc<Node>>>,
+    }
+
+    let leaf = Rc::new(Node {
+        _value: 3,
+        parent: RefCell::new(Weak::new()),
+        _children: RefCell::new(vec![]),
+    });
+
+    // 1 ref: leaf; 0 weak ref
+    println!(
+        "leaf strong = {}, weak = {}",
+        Rc::strong_count(&leaf),
+        Rc::weak_count(&leaf)
+    );
+
+    {
+        let branch = Rc::new(Node {
+            _value: 5,
+            parent: RefCell::new(Weak::new()),
+            _children: RefCell::new(vec![Rc::clone(&leaf)]),
+        });
+
+        *leaf.parent.borrow_mut() = Rc::downgrade(&branch);
+
+        // 1 ref: branch; 1 weak ref: leaf
+        println!(
+            "branch strong = {}, weak = {}",
+            Rc::strong_count(&branch),
+            Rc::weak_count(&branch)
+        );
+        // 2 ref: branch, leaf
+        println!(
+            "leaf strong = {}, weak = {}",
+            Rc::strong_count(&leaf),
+            Rc::weak_count(&leaf)
+        );
+    }
+
+    println!("leaf parent = {:?}", leaf.parent.borrow().upgrade());
+    // 1 ref: leaf
+    println!(
+        "leaf strong = {}, weak = {}",
+        Rc::strong_count(&leaf),
+        Rc::weak_count(&leaf),
+    );
+}
+
+#[test]
+fn it_selfref_by_option() {
+    let s = "hello";
+    let sub = &s[..3];
+    println!("{}, {}", s, sub);
+
+    #[derive(Debug)]
+    struct WhatAboutThis<'a> {
+        name: String,
+        nickname: Option<&'a str>,
+    }
+
+    let mut tricky = WhatAboutThis {
+        name: "Annabelle".to_string(),
+        nickname: None,
+    };
+    tricky.nickname = Some(&tricky.name[..4]);
+
+    println!("{:?}", tricky);
+}
+
+#[test]
+fn it_selfref_by_unsafe() {
+    #[derive(Debug)]
+    struct SelfRef {
+        value: String,
+        ptr_to_value: *const String,
+    }
+
+    impl SelfRef {
+        fn new(txt: &str) -> Self {
+            Self {
+                value: String::from(txt),
+                ptr_to_value: std::ptr::null(),
+            }
+        }
+
+        fn init(&mut self) {
+            let self_ref: *const String = &self.value;
+            self.ptr_to_value = self_ref;
+        }
+
+        fn value(&self) -> &str {
+            &self.value
+        }
+
+        fn ptr_to_value(&self) -> &String {
+            assert!(
+                !self.ptr_to_value.is_null(),
+                "Test::b called without Test::init being called first"
+            );
+            unsafe { &*(self.ptr_to_value) }
+        }
+    }
+
+    let mut sr = SelfRef::new("hello");
+    sr.init();
+    println!("{}, {:p}", sr.value(), sr.ptr_to_value());
+}
+
+//
 // 全局变量
-// https://course.rs/advance/global-variable.html
 //
 
 #[test]
