@@ -253,3 +253,224 @@ fn it_mpsc_send_and_rec_enum() {
 //
 // 锁、Condvar 和信号量
 //
+
+#[test]
+fn it_mutex_in_main() {
+    use std::sync::Mutex;
+
+    let m = Mutex::new(5);
+    {
+        let mut num = m.lock().unwrap();
+        *num = 6;
+    } // 锁自动被 drop
+    println!("m = {:?}", m);
+}
+
+#[test]
+fn it_mutex_in_threads() {
+    use std::sync::{Arc, Mutex};
+
+    // Arc<T> + Mutex<T> 用于多线程内部可变性
+    let counter = Arc::new(Mutex::new(0));
+    let mut handles = vec![];
+
+    for _ in 0..10 {
+        let cc = Arc::clone(&counter);
+        let handle = thread::spawn(move || {
+            let mut num = cc.lock().unwrap();
+            *num += 1;
+        });
+        handles.push(handle);
+    }
+
+    for handle in handles {
+        handle.join().unwrap();
+    }
+    println!("result: {}", *counter.lock().unwrap());
+}
+
+#[test]
+fn it_mutex_trylock_for_deadlock() {
+    // try_lock 会尝试去获取一次锁，如果无法获取会返回一个错误，不会发生阻塞
+    use lazy_static::lazy_static;
+    use std::sync::{Mutex, MutexGuard};
+
+    lazy_static! {
+        static ref MUTEX1: Mutex<i64> = Mutex::new(0);
+        static ref MUTEX2: Mutex<i64> = Mutex::new(0);
+    }
+
+    let mut children = vec![];
+    for i_thread in 0..2 {
+        children.push(thread::spawn(move || {
+            if i_thread % 2 == 0 {
+                let _guard: MutexGuard<i64> = MUTEX1.lock().unwrap();
+                println!(
+                    "thread {} get lock for MUTEX1, and try lock MUTEX2",
+                    i_thread
+                );
+                thread::sleep(Duration::from_millis(10));
+                let guard = MUTEX2.try_lock();
+                println!("thread1 try lock for MUTEX2, result: {:?}", guard);
+            } else {
+                let _guard = MUTEX2.lock().unwrap();
+                println!(
+                    "thread {} get lock for MUTEX2, and try lock MUTEX1",
+                    i_thread
+                );
+                thread::sleep(Duration::from_millis(20));
+                let guard = MUTEX1.try_lock();
+                println!("thread2 try lock for MUTEX1, result: {:?}", guard);
+            }
+        }));
+    }
+
+    for child in children {
+        let _ = child.join();
+    }
+    println!("dead lock not occur")
+}
+
+#[test]
+fn it_rwlock_sample() {
+    use std::sync::RwLock;
+
+    let lock = RwLock::new(5);
+    // 同一时间允许多个读
+    {
+        let r1 = lock.read().unwrap();
+        let r2 = lock.read().unwrap();
+        assert_eq!(*r1, 5);
+        assert_eq!(*r2, 5);
+    } // 读锁在此处被 drop
+
+    // 同一时间只允许一个写
+    {
+        let mut w = lock.write().unwrap();
+        *w += 1;
+        assert_eq!(*w, 6);
+    } // 写锁在此处被 drop
+    println!("rwlock test done")
+}
+
+#[test]
+fn it_condvar_sample() {
+    // 实现交替打印输出
+    use std::sync::{Arc, Condvar, Mutex};
+
+    let flag = Arc::new(Mutex::new(false));
+    let cond = Arc::new(Condvar::new());
+    let cflag = flag.clone();
+    let ccond = cond.clone();
+
+    let handle = thread::spawn(move || {
+        let mut m = { *cflag.lock().unwrap() };
+        let mut counter = 0;
+        while counter < 3 {
+            while !m {
+                m = *ccond.wait(cflag.lock().unwrap()).unwrap();
+            }
+            {
+                m = false;
+                *cflag.lock().unwrap() = false;
+            }
+            counter += 1;
+            println!("inner counter: {}", counter);
+        }
+    });
+
+    let mut counter = 0;
+    loop {
+        thread::sleep(Duration::from_secs(1));
+        *flag.lock().unwrap() = true;
+        counter += 1;
+        if counter > 3 {
+            break;
+        }
+        println!("outside counter: {}", counter);
+        cond.notify_one();
+    }
+
+    handle.join().unwrap();
+    println!("flag: {:?}", flag);
+}
+
+//
+// Atomic 原子操作
+//
+
+#[test]
+fn it_atomic_global_var() {
+    use std::ops::Sub;
+    use std::sync::atomic::{AtomicU64, Ordering};
+    use std::time::Instant;
+
+    const N_TIMES: u64 = 10000;
+    const N_THREADS: usize = 10;
+
+    static R: AtomicU64 = AtomicU64::new(0);
+
+    fn add_n_times(n: u64) -> thread::JoinHandle<()> {
+        thread::spawn(move || {
+            for _ in 0..n {
+                R.fetch_add(1, Ordering::Relaxed);
+            }
+        })
+    }
+
+    let start = Instant::now();
+    let mut threads = Vec::with_capacity(N_THREADS);
+
+    for _ in 0..N_THREADS {
+        threads.push(add_n_times(N_TIMES));
+    }
+
+    for thread in threads {
+        thread.join().unwrap();
+    }
+
+    assert_eq!(N_TIMES * N_THREADS as u64, R.load(Ordering::Relaxed));
+    println!("{:?}", Instant::now().sub(start));
+}
+
+#[test]
+fn it_atomic_ordering() {
+    use std::sync::atomic::{AtomicBool, Ordering};
+
+    static mut DATA: u64 = 0;
+    static READY: AtomicBool = AtomicBool::new(false);
+
+    fn reset() {
+        unsafe {
+            DATA = 0;
+        }
+        READY.store(false, Ordering::Relaxed);
+    }
+
+    fn producer() -> thread::JoinHandle<()> {
+        thread::spawn(move || {
+            unsafe {
+                DATA = 100;
+            }
+            READY.store(true, Ordering::Release);
+        })
+    }
+
+    fn consumer() -> thread::JoinHandle<()> {
+        thread::spawn(move || {
+            while !READY.load(Ordering::Acquire) {}
+            assert_eq!(100, unsafe { DATA });
+        })
+    }
+
+    for i in 0..10 {
+        println!("run producer and consumer at {}", i);
+        reset();
+        let p = producer();
+        let c = consumer();
+        p.join().unwrap();
+        c.join().unwrap();
+        thread::sleep(Duration::from_millis(10));
+    }
+    println!("test atomic ordering done")
+}
