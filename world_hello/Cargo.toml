@@ -7,6 +7,7 @@ edition = "2021"
 
 [dependencies]
 hello_macro_derive = { path = "./hello_macro_derive" }
+futures = "0.3"
 lazy_static = "1.4.0"
 num = "0.4.0"
 thiserror = "1.0"
