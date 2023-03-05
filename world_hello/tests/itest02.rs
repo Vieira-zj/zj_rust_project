@@ -2,11 +2,11 @@ use world_hello;
 use world_hello::tutorial;
 
 //
-// fn of src/ lib
+// fn of "src/" lib
 //
 
 #[test]
-fn it_add_point() {
+fn it_call_ext_fn() {
     use tutorial::add_point;
     use tutorial::Point;
 
@@ -26,11 +26,11 @@ fn it_add_point() {
 }
 
 //
-// format, print
+// print
 //
 
 #[test]
-fn it_print_common() {
+fn it_print_common_use() {
     let s = "hello";
     let s1 = format!("{}, world", s);
     println!("{}", s1);
@@ -66,7 +66,7 @@ fn it_print_common() {
 }
 
 #[test]
-fn it_debug_trait() {
+fn it_fmt_debug_trait() {
     // {:?} 适用于实现了 std::fmt::Debug 特征的类型
     #[derive(Debug)]
     struct Person {
@@ -84,7 +84,7 @@ fn it_debug_trait() {
 }
 
 #[test]
-fn it_display_trait() {
+fn it_fmt_display_trait() {
     #[derive(Debug)]
     struct Person {
         name: String,
@@ -107,7 +107,7 @@ fn it_display_trait() {
 }
 
 #[test]
-fn it_extern_display_trait() {
+fn it_fmt_display_trait_for_ext() {
     // 为外部类型实现 Display 特征
     struct Array(Vec<i32>);
 
@@ -127,7 +127,7 @@ fn it_extern_display_trait() {
 //
 
 #[test]
-fn it_method_declare() {
+fn it_methods_of_struct() {
     #[derive(Debug)]
     struct Rectangle {
         width: u32,
@@ -207,6 +207,7 @@ fn it_generic_fn_declare_01() {
 #[test]
 fn it_generic_fn_declare_02() {
     fn largest<T: std::cmp::PartialOrd>(list: &[T]) -> &T {
+        // here use ref value
         let mut largetst = &list[0];
         for item in list.iter() {
             if item > largetst {
@@ -233,6 +234,7 @@ fn it_generic_struct_declare() {
     }
 
     impl<T> Point<T> {
+        // use ref here
         fn x(&self) -> &T {
             &self.x
         }
@@ -268,7 +270,7 @@ fn it_generic_for_const() {
 //
 
 #[test]
-fn it_trait_declare() {
+fn it_define_and_impl_trait() {
     trait Summary {
         // 默认实现
         fn summarize(&self) -> String {
@@ -307,11 +309,11 @@ fn it_trait_declare() {
         _username: "sunface".to_string(),
         _content: "unknown".to_string(),
     };
-    println!("{}", weibo.summarize())
+    println!("{}", weibo.summarize());
 }
 
 #[test]
-fn it_trait_method_for_generic() {
+fn it_declare_trait_method() {
     fn largest<T: PartialOrd + Copy>(list: &[T]) -> T {
         let mut largest = list[0];
         for &item in list.iter() {
@@ -378,8 +380,9 @@ fn it_impl_add_trait() {
 }
 
 #[test]
-fn it_trait_method_for_add() {
+fn it_impl_add_trait_method() {
     use std::ops::Add;
+
     #[derive(Debug)]
     struct Point<T: Add<T, Output = T>> {
         x: T,
@@ -410,7 +413,7 @@ fn it_trait_method_for_add() {
 }
 
 #[test]
-fn it_trait_method_for_cmp() {
+fn it_impl_cmp_display_trait_method() {
     struct Pair<T> {
         x: T,
         y: T,
@@ -437,7 +440,7 @@ fn it_trait_method_for_cmp() {
 }
 
 #[test]
-fn it_super_trait() {
+fn it_define_and_impl_super_trait() {
     use std::fmt::Display;
 
     trait OutlinePrint: Display {
@@ -473,7 +476,7 @@ fn it_super_trait() {
 //
 
 #[test]
-fn it_trait_object_01() {
+fn it_ui_eles_by_trait_object() {
     trait Draw {
         fn draw(&self);
     }
@@ -488,7 +491,7 @@ fn it_trait_object_01() {
             println!(
                 "Button: width={}, height={}, label={}",
                 self.width, self.height, self.label
-            )
+            );
         }
     }
 
@@ -502,7 +505,7 @@ fn it_trait_object_01() {
             println!(
                 "SelectBox: width={}, height={}, options:{:?}",
                 self.width, self.height, self.options
-            )
+            );
         }
     }
 
@@ -547,14 +550,14 @@ fn it_ipaddrs_by_trait_object() {
     struct IPV4(String);
     impl IPAddr for IPV4 {
         fn display(&self) {
-            println!("ipv4: {:?}", self.0)
+            println!("ipv4: {:?}", self.0);
         }
     }
 
     struct IPV6(String);
     impl IPAddr for IPV6 {
         fn display(&self) {
-            println!("ipv6: {:?}", self.0)
+            println!("ipv6: {:?}", self.0);
         }
     }
 
@@ -583,7 +586,7 @@ fn it_ipaddrs_by_enum() {
         IPAddr::V4(String::from("127.0.0.1")),
         IPAddr::V6("::1".to_string()),
     ];
-    for ip in &v {
+    for ip in v.iter() {
         show_ip(ip);
     }
 }

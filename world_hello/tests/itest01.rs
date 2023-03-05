@@ -51,6 +51,19 @@ fn it_exp_and_statement() {
 }
 
 #[test]
+fn it_return_from_fn() {
+    fn plus_or_minus(x: i32) -> i32 {
+        if x > 5 {
+            return x - 5;
+        }
+        x + 5
+    }
+
+    let x = plus_or_minus(5);
+    println!("the value of x is: {}", x);
+}
+
+#[test]
 fn it_float_calculate() {
     use num::complex::Complex;
     let a = Complex { re: 2.1, im: -1.2 };
@@ -60,7 +73,7 @@ fn it_float_calculate() {
 }
 
 #[test]
-fn it_loop_for_range() {
+fn it_iterator_and_loop() {
     for c in 'a'..='z' {
         print!("{},", c);
     }
@@ -78,7 +91,7 @@ fn it_loop_for_range() {
     }
     println!();
 
-    // break with value in loop
+    // break in loop and return value
     let mut count = 0;
     let result = loop {
         count += 1;
@@ -90,20 +103,7 @@ fn it_loop_for_range() {
 }
 
 #[test]
-fn it_return_from_fn() {
-    fn plus_or_minus(x: i32) -> i32 {
-        if x > 5 {
-            return x - 5;
-        }
-        x + 5
-    }
-
-    let x = plus_or_minus(5);
-    println!("the value of x is: {}", x);
-}
-
-#[test]
-fn it_reference_value() {
+fn it_ref_variable() {
     let x = 5;
     let y = &x;
     assert_eq!(5, x);
@@ -134,7 +134,7 @@ fn it_string_capacity() {
 }
 
 #[test]
-fn it_update_string() {
+fn it_string_update() {
     fn change(str: &mut String) {
         str.push_str(", world");
     }
@@ -148,13 +148,13 @@ fn it_update_string() {
     println!("string: {}", s);
 
     let sub = &s[..5];
-    println!("sub string: {}", sub)
+    println!("sub string: {}", sub);
 }
 
 #[test]
 fn it_string_op() {
     // &str 是长度固定的字符串切片，String 是可动态增长的字符串
-    // String 还是 Vector, 它们都是 Rust 的高级类型：集合类型
+    // String 和 Vector 都是 Rust 的高级类型：集合类型
     let mut s = String::from("hello ");
     s.push('r');
     println!("push() -> {}", s);
@@ -207,7 +207,7 @@ fn it_string_ref() {
 }
 
 #[test]
-fn it_str_convert() {
+fn it_string_convert() {
     // &str => String
     let s1 = "hello, world";
     let s2 = s1.to_string();
@@ -232,7 +232,7 @@ fn it_str_convert() {
 }
 
 #[test]
-fn it_str_index() {
+fn it_string_index() {
     let s = String::from("hello, 世界");
     let s1 = &s[..1];
     assert_eq!(s1, "h");
@@ -252,7 +252,7 @@ fn it_str_index() {
 //
 
 #[test]
-fn it_array_and_slice() {
+fn it_sizeof_array_and_slice() {
     use std::mem::size_of_val;
 
     let a = [1, 2, 3, 4, 5];
@@ -382,7 +382,7 @@ fn it_debug_struct() {
 
 #[test]
 #[allow(dead_code)]
-fn it_enum_value() {
+fn it_enum_value_as() {
     enum Number1 {
         Zero = 0,
         One,
@@ -411,7 +411,7 @@ fn it_enum_usage() {
     }
 
     fn show_message(msg: Message) {
-        println!("{:?}", msg)
+        println!("{:?}", msg);
     }
 
     let msgs: [Message; 3] = [
@@ -441,11 +441,11 @@ fn it_enum_if_let() {
 }
 
 #[test]
-fn it_enum_option() {
+fn it_enum_match_option() {
     fn plus_one(x: Option<i32>) -> Option<i32> {
         match x {
-            None => None,
             Some(i) => Some(i + 1),
+            None => None,
         }
     }
 
@@ -466,8 +466,8 @@ fn it_enum_option() {
 //
 
 #[test]
-fn it_match_common() {
-    // num match
+fn it_match_values() {
+    // number match
     let n = 7u8;
     match n {
         1 => println!("match 1"),
@@ -498,7 +498,7 @@ fn it_match_common() {
 }
 
 #[test]
-fn it_enum_match() {
+fn it_match_enum() {
     enum Action {
         Say(String),
         MoveTo(i32, i32),
@@ -529,8 +529,8 @@ fn it_enum_match() {
 }
 
 #[test]
-fn it_enum_match_with_cond() {
-    // match by if
+fn it_match_enum_with_cond() {
+    // match by if cond
     let num = Some(4);
     match num {
         Some(x) if x < 5 => println!("less than five: {}", x),
@@ -558,7 +558,7 @@ fn it_enum_match_with_cond() {
 }
 
 #[test]
-fn it_enum_matches() {
+fn it_matches_enum() {
     let foo = 'f';
     assert!(matches!(foo, 'A'..='Z' | 'a'..='z'));
 
@@ -576,7 +576,7 @@ fn it_enum_matches() {
 }
 
 #[test]
-fn it_match_in_while_let() {
+fn it_match_in_loop() {
     let mut stack = Vec::new();
     stack.push(1);
     stack.push(2);
@@ -592,7 +592,7 @@ fn it_match_in_while_let() {
 //
 
 #[test]
-fn it_num_conv_by_as() {
+fn it_conv_num_by_as() {
     // Rust 并没有为基本类型提供隐式的类型转换，可以通过 as 来进行显式转换
     let a = 3.1 as i8;
     let b = 100_i8 as i32;
@@ -601,7 +601,7 @@ fn it_num_conv_by_as() {
 }
 
 #[test]
-fn it_str_conv_to_string() {
+fn it_conv_str_and_string() {
     // String 实现了 From<&str> 特征
     let my_str = "hello";
     let string1 = String::from(my_str);
@@ -612,10 +612,10 @@ fn it_str_conv_to_string() {
 }
 
 #[test]
-fn it_num_conv_by_tryinto() {
-    // 与 From/Into 不同，TryFrom 和 TryInto 可以对转换后的失败进行处理，然后返回一个 Result
+fn it_conv_num_by_tryinto() {
     use std::convert::TryInto;
 
+    // 与 From/Into 不同，TryFrom 和 TryInto 可以对转换后的失败进行处理，然后返回一个 Result
     let b: i16 = 1500;
     let b: i8 = match b.try_into() {
         Ok(b1) => b1,
@@ -655,13 +655,15 @@ fn it_from_and_into_trait() {
 }
 
 #[test]
-fn it_pointer_addr_conv() {
+fn it_ptr_addr_calculate() {
     let mut values: [i32; 2] = [1, 2];
     let p1: *mut i32 = values.as_mut_ptr();
+
     let first_address = p1 as usize;
     // i32 类型占用 4 个字节
     println!("i32 size: {} (bytes)", std::mem::size_of::<i32>());
     let second_address = first_address + 4;
+
     let p2 = second_address as *mut i32;
     unsafe {
         *p2 += 1;
