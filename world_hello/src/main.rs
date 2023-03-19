@@ -28,6 +28,10 @@ fn main() {
         read_file_sample_02();
 
         display_trait_sample();
+
+        let mut v = vec![1, 2, 3, 4, 5, 6, 7];
+        retain_even(&mut v);
+        println!("even num: {:?}", v);
     }
 
     custom_macro_sample();
@@ -98,6 +102,21 @@ fn get_value_by_input_index() -> () {
 
     let element = a[idx];
     println!("The value of the element at index {} is: {}", idx, element);
+}
+
+fn is_even(num: i32) -> bool {
+    num % 2 == 0
+}
+
+fn retain_even(nums: &mut Vec<i32>) {
+    let mut i = 0;
+    for j in 0..nums.len() {
+        if is_even(nums[j]) {
+            nums[i] = nums[j];
+            i += 1;
+        }
+    }
+    nums.truncate(i);
 }
 
 // read file samples

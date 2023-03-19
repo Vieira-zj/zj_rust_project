@@ -135,9 +135,9 @@ fn it_methods_of_struct() {
     }
 
     impl Rectangle {
-        // 关联函数
-        // Self = Rectangle
+        // 关联函数：它没有 self, 不能用 f.read() 的形式调用，因此它是一个函数而不是方法，它又在 impl 中，与结构体紧密关联，因此称为关联函数
         fn new(width: u32, height: u32) -> Self {
+            // Self = Rectangle
             Rectangle {
                 width: width,
                 height: height,

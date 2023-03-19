@@ -366,6 +366,14 @@ fn it_lifetime_in_fn() {
         let result = longest(str1.as_str(), str2.as_str());
         println!("longest string is {}", result);
     }
+
+    let str3 = String::from("abcd");
+    let result;
+    {
+        let str4 = String::from("xyz");
+        result = longest(str3.as_str(), str4.as_str());
+        println!("longest string is {}", result);
+    }
 }
 
 #[test]
@@ -451,10 +459,9 @@ fn it_lifetime_implied_in_fn() {
         &s[..]
     }
 
-    let res2;
     {
         let s = String::from("hello world");
-        res2 = first_word_v2(&s);
+        let res2 = first_word_v2(&s);
         println!("{}", res2);
     }
 }
@@ -602,9 +609,13 @@ fn it_lifetime_adv_reborrow() {
     let r = &mut p;
 
     // 此时对 r 的再借用不会导致跟上面的借用冲突
-    let rr = &*r;
+    let rr1 = &*r;
     // 再借用 rr 最后一次使用发生在这里，在它的生命周期中，我们并没有使用原来的借用 r, 因此不会报错
-    println!("{:?}", rr);
+    println!("{:?}", rr1);
+
+    let rr2 = &mut *r;
+    rr2.move_to(5, 5);
+    println!("{:?}", rr2);
 
     // 再借用结束后，才去使用原来的借用 r
     r.move_to(10, 10);
@@ -655,10 +666,8 @@ fn it_lifetime_adv_sample() {
 }
 
 #[test]
-fn it_lifetime_for_static() {
+fn it_lifetime_static_ref() {
     // 生命周期 'static 意味着能和程序活得一样久，例如字符串字面量和特征对象
-    use std::fmt::Display;
-
     let r1;
     let r2;
     {
@@ -670,19 +679,37 @@ fn it_lifetime_for_static() {
     // r1 和 r2 持有的数据都是 'static 的，因此在花括号结束后，并不会被释放
     println!("static i32: {}", r1);
     println!("static str: {}", r2);
+    println!();
 
-    // 没有检查 T, 这里只确保 &T 的生命周期符合规则即可
-    fn static_borrow<T: Display + 'static>(t: &T) {
+    fn get_memory_location() -> (usize, usize) {
+        // "Hello World" 是字符串字面量，因此它的生命周期是 'static
+        // 但持有它的变量 str 的生命周期就不一样了，它完全取决于变量作用域，也就是当前的函数范围
+        let str = "Hello World";
+        let p = str.as_ptr() as usize;
+        let len = str.len();
+        (p, len)
+    }
+
+    let (pointer, length) = get_memory_location();
+    println!("the {} bytes at 0x{:X}", length, pointer);
+}
+
+#[test]
+fn it_lifetime_static_generic_t() {
+    use std::fmt::Display;
+
+    // 这里约束的是 T, 但是使用的却是它的引用 &T, 换而言之，我们根本没有直接使用 T, 因此编译器就没有去检查 T 的生命周期约束
+    fn static_bound<T: Display + 'static>(t: &T) {
         println!("{}", t);
     }
 
-    let _r3: &str;
+    let r3: &str = "hello";
     {
         let s1 = "String".to_string();
-        static_borrow(&s1);
+        static_bound(&s1);
 
         // s1 是 String 类型，没有 'static 的生命周期，因此下面代码会报错
         // r3 = &s1;
-    }
-    // println!("{}", r3);
+    } // s1 在这里被 drop
+    println!("{}", r3);
 }

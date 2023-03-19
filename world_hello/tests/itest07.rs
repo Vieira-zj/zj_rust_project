@@ -1,82 +1,4 @@
 //
-// 异步编程
-// https://course.rs/async-rust/async/intro.html
-//
-
-#[test]
-fn it_async_hello_world() {
-    use futures::executor::block_on;
-
-    async fn hello_world() {
-        hello_cat().await;
-        println!("hello, world!");
-    }
-
-    async fn hello_cat() {
-        println!("hello, kitty!");
-    }
-
-    let future = hello_world();
-    block_on(future);
-}
-
-#[test]
-fn it_selfref_sample() {
-    #[derive(Debug)]
-    struct Test {
-        a: String,
-        b: *const String,
-    }
-
-    impl Test {
-        fn new(txt: &str) -> Self {
-            Test {
-                a: String::from(txt),
-                b: std::ptr::null(),
-            }
-        }
-
-        fn init(&mut self) {
-            let self_ref: *const String = &self.a;
-            self.b = self_ref;
-        }
-
-        fn a(&self) -> &str {
-            &self.a
-        }
-
-        fn b(&self) -> &String {
-            assert!(
-                !self.b.is_null(),
-                "Test::b called without Test::init being called first"
-            );
-            unsafe { &(*self.b) }
-        }
-    }
-
-    let mut test1 = Test::new("test1");
-    test1.init();
-    let mut test2 = Test::new("test2");
-    test2.init();
-    println!("a: {}, b: {}", test1.a(), test1.b());
-    println!("a: {}, b: {}", test2.a(), test2.b());
-
-    std::mem::swap(&mut test1, &mut test2);
-    println!("a: {}, b: {}", test1.a(), test1.b());
-    println!("a: {}, b: {}", test2.a(), test2.b());
-}
-
-#[test]
-fn it_selfref_pin_to_stack() {
-    // TODO:
-}
-
-#[test]
-fn it_selfref_pin_to_heap() {
-    // TODO:
-}
-
-//
 // Exp
 //
 
@@ -111,7 +33,20 @@ fn it_iterator_slice() {
 }
 
 #[test]
-fn it_mut_borrow() {
+fn it_mut_borrow_01() {
+    let mut x = 1;
+    println!("{}", x);
+
+    let y = &mut x;
+    // error: cannot assign to "x" because it is borrowed
+    // x = 2;
+    // println!("{}", x);
+    *y = 3;
+    println!("{}", y);
+}
+
+#[test]
+fn it_mut_borrow_02() {
     fn add_item(data: &mut Vec<i32>) {
         data.push(6);
     }
@@ -130,6 +65,7 @@ fn it_mut_borrow() {
 #[test]
 fn it_return_fn_local_str() {
     fn get_str<'a>() -> &'a str {
+        // s 的作用域为 get_str 函数，而字符串字面量 "hello" 的生命周期是 'static
         // error
         // let s = String::from("hello");
         // return s.as_str();
