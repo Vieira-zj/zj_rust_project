@@ -35,14 +35,19 @@ fn it_iterator_slice() {
 #[test]
 fn it_mut_borrow_01() {
     let mut x = 1;
-    println!("{}", x);
+    let y = &x;
+    println!("{}, {}", x, y);
 
-    let y = &mut x;
+    let z = &mut x;
     // error: cannot assign to "x" because it is borrowed
     // x = 2;
     // println!("{}", x);
-    *y = 3;
-    println!("{}", y);
+    *z = 3;
+    println!("{}", z);
+
+    let s = "hello";
+    let sub = &s[..3];
+    println!("{}, {}", s, sub);
 }
 
 #[test]

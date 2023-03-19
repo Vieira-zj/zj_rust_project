@@ -5,6 +5,7 @@
 
 #[test]
 fn it_weak_ref() {
+    // weak ref 可访问，但没有所有权，不增加引用计数，因此不会影响被引用值的释放回收
     use std::rc::Rc;
 
     let five = Rc::new(5);
@@ -15,6 +16,7 @@ fn it_weak_ref() {
         println!("{}, {}", v, *v);
     }
 
+    // 拿走了目标值的所有权
     drop(five);
 
     let strong_five = weak_five.upgrade();
@@ -26,8 +28,10 @@ fn it_weak_ref_sample() {
     use std::cell::RefCell;
     use std::rc::{Rc, Weak};
 
+    // Owner 与 Gadget 相互引用
     struct Owner {
         name: String,
+        // 需要修改 gadgets, 这里使用 RefCell
         gadgets: RefCell<Vec<Weak<Gadget>>>,
     }
 
@@ -50,6 +54,7 @@ fn it_weak_ref_sample() {
         owner: gadget_owner.clone(),
     });
 
+    // 因为之前使用了 Rc, 现在必须要使用 Weak, 否则就会循环引用
     gadget_owner
         .gadgets
         .borrow_mut()
@@ -83,11 +88,10 @@ fn it_weak_ref_tree_sample() {
         _children: RefCell::new(vec![]),
     });
 
-    // 1 ref: leaf; 0 weak ref
     println!(
         "leaf strong = {}, weak = {}",
-        Rc::strong_count(&leaf),
-        Rc::weak_count(&leaf)
+        Rc::strong_count(&leaf), // 1 ref: leaf
+        Rc::weak_count(&leaf),   // 0 weak ref
     );
 
     {
@@ -96,38 +100,30 @@ fn it_weak_ref_tree_sample() {
             parent: RefCell::new(Weak::new()),
             _children: RefCell::new(vec![Rc::clone(&leaf)]),
         });
-
         *leaf.parent.borrow_mut() = Rc::downgrade(&branch);
 
-        // 1 ref: branch; 1 weak ref: leaf
         println!(
             "branch strong = {}, weak = {}",
-            Rc::strong_count(&branch),
-            Rc::weak_count(&branch)
+            Rc::strong_count(&branch), // 1 ref: branch
+            Rc::weak_count(&branch),   // 1 weak ref: leaf
         );
-        // 2 ref: branch, leaf
         println!(
             "leaf strong = {}, weak = {}",
-            Rc::strong_count(&leaf),
-            Rc::weak_count(&leaf)
+            Rc::strong_count(&leaf), // 2 ref: branch,leaf
+            Rc::weak_count(&leaf),   // 0 weak ref
         );
     }
 
     println!("leaf parent = {:?}", leaf.parent.borrow().upgrade());
-    // 1 ref: leaf
     println!(
         "leaf strong = {}, weak = {}",
-        Rc::strong_count(&leaf),
-        Rc::weak_count(&leaf),
+        Rc::strong_count(&leaf), // 1 ref: leaf
+        Rc::weak_count(&leaf),   // 0 weak ref
     );
 }
 
 #[test]
 fn it_selfref_by_option() {
-    let s = "hello";
-    let sub = &s[..3];
-    println!("{}, {}", s, sub);
-
     #[derive(Debug)]
     struct WhatAboutThis<'a> {
         name: String,
@@ -144,23 +140,25 @@ fn it_selfref_by_option() {
 }
 
 #[test]
-fn it_selfref_by_unsafe() {
+fn it_selfref_by_unsafe_ptr() {
     #[derive(Debug)]
     struct SelfRef {
         value: String,
-        ptr_to_value: *const String,
+        // 将 *const 修改为 *mut, 通过裸指针来修改 String
+        // ptr_to_value: *const String,
+        ptr_to_value: *mut String,
     }
 
     impl SelfRef {
         fn new(txt: &str) -> Self {
             Self {
                 value: String::from(txt),
-                ptr_to_value: std::ptr::null(),
+                ptr_to_value: std::ptr::null_mut(),
             }
         }
 
         fn init(&mut self) {
-            let self_ref: *const String = &self.value;
+            let self_ref: *mut String = &mut self.value;
             self.ptr_to_value = self_ref;
         }
 
@@ -180,6 +178,12 @@ fn it_selfref_by_unsafe() {
     let mut sr = SelfRef::new("hello");
     sr.init();
     println!("{}, {:p}", sr.value(), sr.ptr_to_value());
+
+    sr.value.push_str(", world");
+    unsafe {
+        (&mut *sr.ptr_to_value).push_str("!");
+    }
+    println!("{}, {:p}", sr.value(), sr.ptr_to_value());
 }
 
 //
@@ -187,11 +191,12 @@ fn it_selfref_by_unsafe() {
 //
 
 #[test]
-fn it_id_generator_by_atomic() {
+fn it_global_id_generator_by_atomic() {
     use std::sync::atomic::{AtomicUsize, Ordering};
 
-    static GLOBAL_ID_COUNTER: AtomicUsize = AtomicUsize::new(0);
-    const MAX_ID: usize = usize::MAX / 2;
+    // 赋值必须是在编译期就能计算出的值，如果需要在运行时才能得出结果的值，比如函数，则不能赋值给常量表达式
+    static GLOBAL_ID_COUNTER: AtomicUsize = AtomicUsize::new(0); // 静态变量
+    const MAX_ID: usize = usize::MAX / 2; // 常量
 
     fn generate_id() -> usize {
         let current_val = GLOBAL_ID_COUNTER.load(Ordering::Relaxed);
@@ -226,7 +231,8 @@ fn it_id_generator_by_atomic() {
 }
 
 #[test]
-fn it_cacher_by_lazy_static() {
+fn it_global_cacher_by_lazy_static() {
+    // lazy_static 允许我们在运行期初始化静态变量
     use lazy_static::lazy_static;
     use std::collections::HashMap;
 
@@ -240,16 +246,18 @@ fn it_cacher_by_lazy_static() {
         };
     }
 
+    // 首次访问 HASHMAP 的同时对其进行初始化
     println!("the value for 0 is: {}", HASHMAP.get(&0).unwrap());
     println!("the value for 1 is: {}", HASHMAP.get(&1).unwrap());
 }
 
 //
-// Option, Result API
+// Option,Result 处理
+// https://course.rs/advance/errors.html
 //
 
 #[test]
-fn it_func_or_and() {
+fn it_option_or_and() {
     // Option
     let s1 = Some("some1");
     let s2 = Some("some2");
@@ -277,7 +285,7 @@ fn it_func_or_and() {
 }
 
 #[test]
-fn it_func_or_else_and_then() {
+fn it_option_or_else_and_then() {
     // Option
     let s1 = Some("some1");
     let s2 = Some("some2");
@@ -311,7 +319,7 @@ fn it_func_or_else_and_then() {
 }
 
 #[test]
-fn it_func_filter() {
+fn it_option_filter() {
     let s1 = Some(3);
     let s2 = Some(6);
     let n = None;
@@ -323,15 +331,15 @@ fn it_func_filter() {
 }
 
 #[test]
-fn it_func_map() {
+fn it_option_map() {
+    let fn_character_count = |s: &str| s.chars().count();
+
     // Option
     let s1 = Some("abcde");
     let s2 = Some(5);
 
     let n1: Option<&str> = None;
     let n2: Option<usize> = None;
-
-    let fn_character_count = |s: &str| s.chars().count();
 
     assert_eq!(s1.map(fn_character_count), s2);
     assert_eq!(n1.map(fn_character_count), n2);
@@ -348,7 +356,7 @@ fn it_func_map() {
 }
 
 #[test]
-fn it_func_map_err() {
+fn it_option_map_err() {
     let o1: Result<&str, &str> = Ok("abcde");
     let o2: Result<&str, isize> = Ok("abcde");
 
@@ -362,7 +370,7 @@ fn it_func_map_err() {
 }
 
 #[test]
-fn it_func_map_or() {
+fn it_option_map_or() {
     const V_DEFAULT: u32 = 1;
     let ok: Result<u32, ()> = Ok(10);
     let n: Option<u32> = None;
@@ -373,7 +381,7 @@ fn it_func_map_or() {
 }
 
 #[test]
-fn it_func_map_or_else() {
+fn it_option_map_or_else() {
     // Option
     let s = Some(10);
     let n: Option<i8> = None;
@@ -396,7 +404,7 @@ fn it_func_map_or_else() {
 }
 
 #[test]
-fn it_func_ok_or() {
+fn it_option_ok_or() {
     const ERR_DEFAULT: &str = "error message";
 
     let s = Some("abcde");
@@ -410,7 +418,7 @@ fn it_func_ok_or() {
 }
 
 #[test]
-fn it_func_ok_or_else() {
+fn it_option_ok_or_else() {
     let s = Some("abcde");
     let n: Option<&str> = None;
     let fn_err_message = || "error message";
@@ -430,6 +438,7 @@ fn it_func_ok_or_else() {
 fn it_custom_simple_error() {
     use std::fmt;
 
+    // 自定义错误类型只需要实现 Debug 和 Display 特征即可，但并不是作为 Err 使用的必要条件
     #[derive(Debug)]
     struct AppError;
 
@@ -444,10 +453,10 @@ fn it_custom_simple_error() {
     }
 
     match produce_error() {
-        Err(e) => eprintln!("{}", e),
+        Err(e) => eprintln!("{}", e), // print display msg
         _ => println!("No error"),
     }
-    eprintln!("{:?}", produce_error());
+    eprintln!("{:?}", produce_error()); // print debug msg
 }
 
 #[test]
@@ -469,6 +478,7 @@ fn it_custom_code_msg_error() {
         }
     }
 
+    // 实现 Debug 特征
     impl fmt::Debug for AppError {
         fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
             write!(
@@ -496,11 +506,12 @@ fn it_custom_code_msg_error() {
 }
 
 #[test]
-fn it_error_convert_from() {
+fn it_custom_from_trait_error() {
     use std::fs::File;
     use std::io::{self, Read};
     use std::num;
 
+    // 只实现了 Debug 特征
     #[derive(Debug)]
     struct AppError {
         _kind: String,
@@ -545,9 +556,31 @@ fn it_error_convert_from() {
 }
 
 #[test]
-#[should_panic(expected = "Environment variable not found")]
-fn it_return_generic_error() {
+#[should_panic(expected = "value: NotPresent")]
+fn it_generic_error_box_dyn() {
+    use std::error::Error;
     use std::fs::read_to_string;
+
+    fn render() -> Result<String, Box<dyn Error>> {
+        let file = std::env::var("MARKDOWN")?; // return std::env::VarError
+        let source = read_to_string(file)?; // return std::io::Error
+        Ok(source)
+    }
+
+    let html = render().unwrap();
+    println!("{}", html);
+}
+
+#[test]
+#[should_panic(expected = "Environment variable not found")]
+fn it_generic_error_from_trait() {
+    use std::fs::read_to_string;
+
+    fn render() -> Result<String, MyError> {
+        let file = std::env::var("MARKDOWN")?;
+        let source = read_to_string(file)?;
+        Ok(source)
+    }
 
     #[derive(Debug)]
     enum MyError {
@@ -555,6 +588,7 @@ fn it_return_generic_error() {
         IOError(std::io::Error),
     }
 
+    // 有为自定义错误类型实现 Error 特征后，才能转换成相应的特征对象
     impl std::error::Error for MyError {}
 
     impl From<std::env::VarError> for MyError {
@@ -578,12 +612,6 @@ fn it_return_generic_error() {
         }
     }
 
-    fn render() -> Result<String, MyError> {
-        let file = std::env::var("RUST")?;
-        let content = read_to_string(file)?;
-        Ok(content)
-    }
-
     let content = match render() {
         Ok(content) => content,
         Err(err) => panic!("render failed: {}", err),
@@ -593,7 +621,7 @@ fn it_return_generic_error() {
 
 #[test]
 #[should_panic(expected = "Environment variable not found")]
-fn it_return_generic_error_by_thiserror() {
+fn it_generic_error_thiserror() {
     use std::fs::read_to_string;
 
     #[derive(thiserror::Error, Debug)]
@@ -622,21 +650,40 @@ fn it_return_generic_error_by_thiserror() {
 //
 
 #[test]
-fn it_get_raw_pointer_from_ref() {
+fn it_unsafe_get_ptr_from_ref() {
+    // 基于引用创建裸指针
     let mut num = 5;
     let p1 = &num as *const i32;
     let p2 = &mut num as *mut i32;
 
+    // 创建裸指针是安全的行为，而解引用裸指针才是不安全的行为
     unsafe {
         println!("number is {}", *p1);
-
         *p2 = *p1 + 1;
         println!("*p1={}, *p2={}", *p1, *p2);
+    }
+    println!();
+
+    let a = 1;
+    let b: *const i32 = &a as *const i32; // 使用 as 显式的转换
+    let c: *const i32 = &a; // 隐式转换
+    unsafe {
+        println!("b={}, c={}", *b, *c);
     }
 }
 
 #[test]
-fn it_get_raw_pointer_from_addr() {
+fn it_unsafe_get_ptr_from_box() {
+    let a = Box::new(10);
+    let b: *const i32 = &*a;
+    let c: *const i32 = Box::into_raw(a);
+    unsafe {
+        println!("b={}, c={}", *b, *c);
+    }
+}
+
+#[test]
+fn it_unsafe_get_ptr_from_addr() {
     use std::{slice::from_raw_parts, str::from_utf8_unchecked};
 
     // 获取字符串的内存地址和长度
@@ -654,22 +701,24 @@ fn it_get_raw_pointer_from_addr() {
 
     let (pointer, length) = get_memory_location();
     let s = get_str_at_location(pointer, length);
-    println!("The {} bytes at 0x{:X} stored: {}", length, pointer, s)
+    println!("the {} bytes at 0x{:X} stored: {}", length, pointer, s)
 }
 
 #[test]
-fn it_unsafe_within_wrapped_func() {
+fn it_unsafe_code_block() {
     use std::slice;
 
+    // 虽然 split_at_mut 使用了 unsafe, 但我们无需将其声明为 unsafe fn
     fn split_at_mut(slice: &mut [i32], mid: usize) -> (&mut [i32], &mut [i32]) {
         let len = slice.len();
-        let ptr = slice.as_mut_ptr();
-        assert!(mid <= len);
+        let ptr = slice.as_mut_ptr(); // 返回指向 slice 首地址的裸指针 *mut i32
+        assert!(mid <= len); // 保证 unsafe 中使用的裸指针 ptr 和 ptr.add(mid) 是合法
 
         // i32 类型每个元素都占用了 4 个字节
         // 这里使用 ptr.add(mid) 代替 ptr + 4 * mid
         unsafe {
             (
+                // 通过指针和长度来创建一个新的切片，该切片的初始地址是 ptr, 长度为 mid
                 slice::from_raw_parts_mut(ptr, mid),
                 slice::from_raw_parts_mut(ptr.add(mid), len - mid),
             )
@@ -677,7 +726,7 @@ fn it_unsafe_within_wrapped_func() {
     }
 
     let mut v = vec![1, 2, 3, 4, 5, 6];
-    let r = &mut v[..];
+    let r = &mut v[..]; // Vec[T] => &[T]
     let (a, b) = split_at_mut(r, 3);
 
     assert_eq!(a, &mut [1, 2, 3]);
@@ -696,4 +745,28 @@ fn it_unsafe_ffi_for_c() {
     unsafe {
         println!("Absolute value of -3 according to C: {}", abs(-3));
     }
+}
+
+#[test]
+fn it_unsafe_asm() {
+    // 内联汇编：在 Rust 代码中嵌入汇编代码
+    use std::arch::asm;
+
+    // 将 5 赋给 u64 类型的变量 x
+    let x: u64;
+    unsafe {
+        asm!("mov {}, 5", out(reg) x);
+    }
+    assert_eq!(x, 5);
+
+    // o = i + 5
+    let i: u64 = 3;
+    let o: u64;
+    unsafe { asm!("mov {0}, {1}", "add {0}, 5", out(reg) o, in(reg) i) }
+    assert_eq!(o, 8);
+
+    let x: u64 = 3;
+    let y: u64;
+    unsafe { asm!("add {0}, 5", inout(reg) x => y) }
+    assert_eq!(y, 8);
 }

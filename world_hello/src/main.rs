@@ -212,6 +212,7 @@ fn init_config() -> Option<&'static mut Config> {
         a: "A".to_string(),
         b: "B".to_string(),
     });
+    // 将 c 从内存中泄漏，变成 'static 生命周期
     Some(Box::leak(c))
 }
 

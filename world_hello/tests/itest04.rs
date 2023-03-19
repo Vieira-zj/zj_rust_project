@@ -195,14 +195,6 @@ fn it_closure_return_fn() {
 
 #[test]
 fn it_iterator_basic() {
-    // 惰性初始化
-    let v1 = vec![1, 2, 3];
-    let v1_iter = v1.iter();
-    for val in v1_iter {
-        println!("{}", val);
-    }
-    println!();
-
     // next()
     let values = vec![1, 2, 3];
     {
@@ -220,13 +212,21 @@ fn it_iterator_basic() {
     }
     println!();
 
-    // into_iter 转换成迭代器
+    // into_iter
     let arr = [1, 2, 3];
     let arr_iter = arr.into_iter();
     for v in arr_iter {
         println!("{}", v);
     }
+    println!("{:?}", arr);
     println!();
+
+    // 惰性初始化
+    let v1 = vec![1, 2, 3];
+    let v1_iter = v1.iter();
+    for val in v1_iter {
+        println!("{}", val);
+    }
 }
 
 #[test]
@@ -369,7 +369,7 @@ fn it_custom_iterator() {
 //
 
 #[test]
-fn it_type_convert_as_ptr() {
+fn it_type_convert_unsafe_ptr() {
     // 内存地址转换为指针
     let mut values = [1, 2];
     let p1 = values.as_mut_ptr();
@@ -744,6 +744,7 @@ fn it_pointer_rc_clone() {
         println!("count after creating c = {}", Rc::strong_count(&c));
     }
     println!("count after c goes out of scope = {}", Rc::strong_count(&a));
+    println!("{}, {}", a, &b);
 }
 
 #[test]
@@ -777,7 +778,8 @@ fn it_pointer_rc_sample() {
     drop(gadget_owner);
 
     println!("gadget {} owned by {}", gadget1.id, gadget1.owner.name);
-    println!("gadget {} owned by {}", gadget2.id, &gadget2.owner.name);
+    let name = &gadget1.owner.name;
+    println!("gadget {} owned by {}", gadget2.id, name);
 
     println!("ref count: {}", Rc::strong_count(&gadget1.owner));
 }
