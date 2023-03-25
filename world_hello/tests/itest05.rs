@@ -748,7 +748,7 @@ fn it_unsafe_ffi_for_c() {
 }
 
 #[test]
-fn it_unsafe_asm() {
+fn it_unsafe_inline_asm() {
     // 内联汇编：在 Rust 代码中嵌入汇编代码
     use std::arch::asm;
 

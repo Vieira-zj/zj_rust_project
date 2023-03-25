@@ -7,7 +7,7 @@ use std::thread;
 use std::time::Duration;
 
 #[test]
-fn it_create_and_wait_thread_01() {
+fn it_thread_create_and_wait_01() {
     // main 线程一旦结束，则程序随之结束，同时各个子线程也将被强行终止
     let handle = thread::spawn(|| {
         for i in 1..5 {
@@ -15,16 +15,17 @@ fn it_create_and_wait_thread_01() {
             thread::sleep(Duration::from_millis(100));
         }
     });
-    handle.join().unwrap();
 
     for i in 1..5 {
         println!("hi number {} from the main thread!", i);
         thread::sleep(Duration::from_millis(100));
     }
+    handle.join().unwrap();
+    println!("test done");
 }
 
 #[test]
-fn it_create_and_wait_thread_02() {
+fn it_thread_create_and_wait_02() {
     // 非 main 线程结束后，各个子线程仍然会继续运行
     let new_thread = thread::spawn(|| {
         println!("thread A creates thread B");
@@ -43,7 +44,9 @@ fn it_create_and_wait_thread_02() {
 }
 
 #[test]
-fn it_move_in_thread() {
+fn it_thread_move_keyword() {
+    // 使用 move 关键字拿走 v 的所有权
+    // 防止 v 还未在子线程中使用就在主线程中被回收
     let v = vec![1, 2, 3];
     let handle = thread::spawn(move || {
         println!("Here's a vector: {:?}", v);
@@ -53,7 +56,7 @@ fn it_move_in_thread() {
 }
 
 #[test]
-fn it_barrier_for_threads() {
+fn it_thread_barrier() {
     use std::sync::{Arc, Barrier};
 
     let mut handles = Vec::with_capacity(6);
@@ -76,7 +79,7 @@ fn it_barrier_for_threads() {
 }
 
 #[test]
-fn it_thread_local() {
+fn it_thread_local_var() {
     use std::cell::RefCell;
 
     // FOO 使用 static 声明为生命周期为 'static 的静态变量
@@ -87,6 +90,7 @@ fn it_thread_local() {
         *f.borrow_mut() = 2;
     });
 
+    // 每个线程开始时都会拿到线程局部变量 FOO 的初始值
     let t = thread::spawn(move || {
         FOO.with(|f| {
             assert_eq!(*f.borrow(), 1);
@@ -97,12 +101,14 @@ fn it_thread_local() {
 
     // 尽管子线程中修改为了 3, 我们在这里依然拥有main线程中的局部值 2
     FOO.with(|f| {
-        assert_eq!(*f.borrow(), 2);
+        let val = *f.borrow();
+        assert_eq!(val, 2);
+        println!("value: {}", val);
     });
 }
 
 #[test]
-fn it_thread_lock_and_notify() {
+fn it_thread_lock_and_cond() {
     use std::sync::{Arc, Condvar, Mutex};
 
     // main 线程首先进入 while 循环，调用 wait 方法挂起等待子线程的通知，并释放了锁 started
@@ -127,23 +133,28 @@ fn it_thread_lock_and_notify() {
 }
 
 #[test]
-fn it_thread_sync_once() {
+fn it_thread_sync_call_once() {
     use std::sync::Once;
 
     static mut VAL: usize = 0;
     static INIT: Once = Once::new();
 
+    // 只执行 1 次，如果当前有另一个初始化过程正在运行，线程将阻止该方法被调用
     let handle1 = thread::spawn(|| {
-        INIT.call_once(|| unsafe {
+        INIT.call_once(|| {
             println!("set value 1");
-            VAL = 1;
+            unsafe {
+                VAL = 1;
+            }
         });
     });
 
     let handle2 = thread::spawn(|| {
-        INIT.call_once(|| unsafe {
+        INIT.call_once(|| {
             println!("set value 2");
-            VAL = 2;
+            unsafe {
+                VAL = 2;
+            }
         });
     });
 
@@ -155,21 +166,26 @@ fn it_thread_sync_once() {
 //
 // Channel: send and receive message
 //
+// 关闭通道
+// 所有发送者被drop或者所有接收者被drop后，通道会自动关闭。
+//
 
 #[test]
-fn it_mpsc_send_and_rec_msg() {
+fn it_mpsc_chan_send_and_rec_msg() {
     use std::sync::mpsc;
 
+    // 使用 move 将 tx 的所有权转移到子线程的闭包中
     let (tx, rx) = mpsc::channel();
     thread::spawn(move || {
         tx.send(1).unwrap();
     });
 
+    // rx.recv() 会阻塞当前线程，直到读取到值，或者通道被关闭
     println!("receive {}", rx.recv().unwrap());
 }
 
 #[test]
-fn it_mpsc_send_and_try_rec_msg() {
+fn it_mpsc_chan_send_and_try_rec_msg() {
     use std::sync::mpsc;
 
     let (tx, rx) = mpsc::channel();
@@ -177,15 +193,15 @@ fn it_mpsc_send_and_try_rec_msg() {
         tx.send(1).unwrap();
     }); // 发送者 tx 被 drop
 
-    println!("receive {:?}", rx.try_recv());
+    println!("receive {:?}", rx.try_recv()); // receive Err(Empty)
     thread::sleep(Duration::from_millis(100));
-    println!("receive {:?}", rx.try_recv());
+    println!("receive {:?}", rx.try_recv()); // receive Ok(1)
     thread::sleep(Duration::from_millis(100));
-    println!("receive {:?}", rx.try_recv());
+    println!("receive {:?}", rx.try_recv()); // receive Err(Disconnected)
 }
 
 #[test]
-fn it_mpsc_rec_msg_in_for() {
+fn it_mpsc_chan_rec_msg_in_for() {
     use std::sync::mpsc;
 
     let (tx, rx) = mpsc::channel();
@@ -197,12 +213,13 @@ fn it_mpsc_rec_msg_in_for() {
             String::from("thread"),
         ];
         for val in vals {
+            // 传递数据的所有权，不能是引用
             tx.send(val).unwrap();
             thread::sleep(Duration::from_millis(200));
         }
     });
 
-    // 'for rx' exit when tx is dropped
+    // for 循环阻塞的从 rx 迭代器中接收消息，当子线程运行完成时，发送者 tx 会随之被 drop, 此时 for 循环将被终止
     for rec in rx {
         println!("received: {}", rec);
     }
@@ -210,7 +227,7 @@ fn it_mpsc_rec_msg_in_for() {
 }
 
 #[test]
-fn it_mpsc_multiple_send() {
+fn it_mpsc_chan_multiple_send() {
     use std::sync::mpsc;
 
     let (tx, rx) = mpsc::channel();
@@ -223,6 +240,7 @@ fn it_mpsc_multiple_send() {
         tx1.send(String::from("hi from clone tx")).unwrap();
     });
 
+    // 需要所有的发送者都被 drop 掉后，接收者 rx 才会收到错误，进而跳出 for 循环
     for rec in rx {
         println!("received: {}", rec);
     }
@@ -230,7 +248,7 @@ fn it_mpsc_multiple_send() {
 }
 
 #[test]
-fn it_mpsc_send_and_rec_enum() {
+fn it_mpsc_chan_send_and_rec_enum() {
     use std::sync::mpsc::{self, Receiver, Sender};
 
     enum Fruit {
@@ -238,6 +256,7 @@ fn it_mpsc_send_and_rec_enum() {
         Orange(String),
     }
 
+    // channel 没有缓冲值参数 => 异步通道
     let (tx, rx): (Sender<Fruit>, Receiver<Fruit>) = mpsc::channel();
     tx.send(Fruit::Orange("sweet".to_string())).unwrap();
     tx.send(Fruit::Apple(1)).unwrap();
@@ -250,27 +269,61 @@ fn it_mpsc_send_and_rec_enum() {
     }
 }
 
+#[test]
+fn it_mpsc_chan_drop() {
+    use std::sync::mpsc;
+    use std::thread;
+
+    let (send, recv) = mpsc::channel();
+    let num_threads = 3;
+    for i in 0..num_threads {
+        let thread_send = send.clone();
+        thread::spawn(move || {
+            thread_send.send(i).unwrap();
+            println!("thread {} finished", i);
+        });
+    }
+
+    // send 本身没有被 drop, 会导致 "for in recv" 阻塞
+    drop(send);
+
+    for x in recv {
+        println!("got: {}", x);
+    }
+    println!("finished iterating");
+}
+
 //
 // 锁、Condvar 和信号量
 //
+// 消息传递类似一个单所有权的系统：一个值同时只能有一个所有者，如果另一个线程需要该值的所有权，需要将所有权通过消息传递进行转移。
+// 而共享内存类似于一个多所有权的系统：多个线程可以同时访问同一个值。
+//
 
 #[test]
-fn it_mutex_in_main() {
+fn it_mutex_lock() {
     use std::sync::Mutex;
 
     let m = Mutex::new(5);
     {
+        // lock() 申请一个锁，该方法会阻塞当前线程，直到获取到锁
         let mut num = m.lock().unwrap();
-        *num = 6;
+        *num = 6; // 自动解引用
     } // 锁自动被 drop
+
+    let mut num1 = m.lock().unwrap();
+    *num1 = 7;
+    drop(num1); // 手动 drop 锁
+
     println!("m = {:?}", m);
 }
 
 #[test]
-fn it_mutex_in_threads() {
+fn it_mutex_lock_in_thread() {
     use std::sync::{Arc, Mutex};
 
-    // Arc<T> + Mutex<T> 用于多线程内部可变性
+    // Rc<T> 和 RefCell<T> 的结合，可以实现单线程的内部可变性
+    // Arc<T> + Mutex<T> 可以实现多线程的内部可变性
     let counter = Arc::new(Mutex::new(0));
     let mut handles = vec![];
 
@@ -332,7 +385,7 @@ fn it_mutex_trylock_for_deadlock() {
 }
 
 #[test]
-fn it_rwlock_sample() {
+fn it_mutex_rwlock() {
     use std::sync::RwLock;
 
     let lock = RwLock::new(5);
@@ -354,17 +407,17 @@ fn it_rwlock_sample() {
 }
 
 #[test]
-fn it_condvar_sample() {
+fn it_sync_condvar() {
     // 实现交替打印输出
     use std::sync::{Arc, Condvar, Mutex};
 
     let flag = Arc::new(Mutex::new(false));
     let cond = Arc::new(Condvar::new());
+
     let cflag = flag.clone();
     let ccond = cond.clone();
-
     let handle = thread::spawn(move || {
-        let mut m = { *cflag.lock().unwrap() };
+        let mut m = { *cflag.lock().unwrap() }; // 代码块中执行，drop 锁
         let mut counter = 0;
         while counter < 3 {
             while !m {
@@ -373,7 +426,7 @@ fn it_condvar_sample() {
             {
                 m = false;
                 *cflag.lock().unwrap() = false;
-            }
+            } // 代码块中执行，drop 锁
             counter += 1;
             println!("inner counter: {}", counter);
         }
@@ -420,7 +473,6 @@ fn it_atomic_global_var() {
 
     let start = Instant::now();
     let mut threads = Vec::with_capacity(N_THREADS);
-
     for _ in 0..N_THREADS {
         threads.push(add_n_times(N_TIMES));
     }
@@ -431,6 +483,29 @@ fn it_atomic_global_var() {
 
     assert_eq!(N_TIMES * N_THREADS as u64, R.load(Ordering::Relaxed));
     println!("{:?}", Instant::now().sub(start));
+}
+
+#[test]
+fn it_atomic_in_thread() {
+    use std::sync::atomic::{AtomicUsize, Ordering};
+    use std::sync::Arc;
+    use std::{hint, thread};
+
+    // Atomic + Arc
+    let spinlock = Arc::new(AtomicUsize::new(1));
+
+    let spinlock_clone = Arc::clone(&spinlock);
+    let thread = thread::spawn(move || {
+        spinlock_clone.store(0, Ordering::SeqCst);
+    });
+
+    while spinlock.load(Ordering::SeqCst) != 0 {
+        hint::spin_loop();
+    }
+
+    if let Err(panic) = thread.join() {
+        println!("Thread had an error: {:?}", panic);
+    }
 }
 
 #[test]
@@ -497,8 +572,12 @@ fn it_async_hello_world() {
     block_on(future);
 }
 
+//
+// Pin 和 Unpin
+//
+
 #[test]
-fn it_selfref_sample() {
+fn it_pin_selfref_sample() {
     #[derive(Debug)]
     struct Test {
         a: String,
@@ -544,11 +623,11 @@ fn it_selfref_sample() {
 }
 
 #[test]
-fn it_selfref_pin_to_stack() {
+fn it_pin_ref_to_stack() {
     // TODO:
 }
 
 #[test]
-fn it_selfref_pin_to_heap() {
+fn it_pin_ref_to_heap() {
     // TODO:
 }
