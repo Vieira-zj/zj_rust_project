@@ -1,3 +1,7 @@
+pub mod fs_demo;
+pub mod macro_demo;
+pub mod rs_demo;
+
 use std::ops::Add;
 
 // demo: trait

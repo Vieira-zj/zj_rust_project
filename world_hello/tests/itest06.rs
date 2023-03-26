@@ -486,7 +486,7 @@ fn it_atomic_global_var() {
 }
 
 #[test]
-fn it_atomic_in_thread() {
+fn it_atomic_var_in_thread() {
     use std::sync::atomic::{AtomicUsize, Ordering};
     use std::sync::Arc;
     use std::{hint, thread};
@@ -509,7 +509,7 @@ fn it_atomic_in_thread() {
 }
 
 #[test]
-fn it_atomic_ordering() {
+fn it_atomic_var_ordering() {
     use std::sync::atomic::{AtomicBool, Ordering};
 
     static mut DATA: u64 = 0;

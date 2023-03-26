@@ -1,10 +1,6 @@
+pub mod apps;
+pub mod config;
 pub mod tutorial;
-
-// trait for macro
-
-pub trait HelloMacro {
-    fn hello_macro();
-}
 
 // fn for integration test
 
