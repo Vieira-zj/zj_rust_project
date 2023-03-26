@@ -2,9 +2,9 @@ pub mod fs_demo;
 pub mod macro_demo;
 pub mod rs_demo;
 
-use std::ops::Add;
-
 // demo: trait
+
+use std::ops::Add;
 
 #[derive(Debug)]
 pub struct Point<T: Add<T, Output = T>> {

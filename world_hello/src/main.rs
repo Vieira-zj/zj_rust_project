@@ -3,27 +3,22 @@ use world_hello::tutorial::{fs_demo, macro_demo, rs_demo};
 
 fn main() {
     unsafe {
-        config::CONFIG = config::init_config();
+        config::init();
         println!("{:?}", config::CONFIG);
     }
 
-    run_demo(false);
-    run_custom_macro_sample(false);
-
-    // test:
-    // cargo run -- body /tmp/test/poem.txt
-    // IGNORE_CASE=1 cargo run -- to /tmp/test/poem.txt
-    run_app_minigrep(true);
+    run_demo();
+    run_apps();
 
     println!("done");
 }
 
-fn run_demo(is_run: bool) {
-    if !is_run {
+fn run_demo() {
+    if true {
+        rs_demo::greet_world();
         return;
     }
 
-    rs_demo::greet_world();
     rs_demo::word_count();
 
     let word = rs_demo::first_word("hello world");
@@ -40,17 +35,31 @@ fn run_demo(is_run: bool) {
     fs_demo::read_file_sample_02();
 
     rs_demo::display_trait_sample();
+
+    macro_demo::custom_macro_sample();
 }
 
-fn run_custom_macro_sample(is_run: bool) {
-    if is_run {
-        macro_demo::custom_macro_sample();
-    }
+fn run_apps() {
+    // test:
+    // cargo run -- body /tmp/test/poem.txt
+    // IGNORE_CASE=1 cargo run -- to /tmp/test/poem.txt
+    run_app_minigrep(false);
+
+    // test:
+    // http://127.0.0.1:7878
+    run_app_webserver(false);
 }
 
 fn run_app_minigrep(is_run: bool) {
     if is_run {
         use world_hello::apps::minigrep::app;
         app::run();
+    }
+}
+
+fn run_app_webserver(is_run: bool) {
+    if is_run {
+        use world_hello::apps::webserver::app_v1 as app;
+        app::tcp_srv();
     }
 }
