@@ -1,2 +1,3 @@
 pub mod app;
-pub mod config;
+// pub(in crate::apps::minigrep) mod config;
+mod config;

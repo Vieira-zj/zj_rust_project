@@ -1,10 +1,9 @@
 // global config
 
-#[allow(dead_code)]
 #[derive(Debug)]
 pub struct Config {
-    a: String,
-    b: String,
+    pub a: String,
+    pub b: String,
 }
 
 pub static mut CONFIG: Option<&mut Config> = None;

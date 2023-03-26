@@ -4,6 +4,8 @@ use proc_macro::TokenStream;
 use quote::quote;
 use syn;
 
+// refer: https://course.rs/advance/macro.html
+
 #[proc_macro_derive(HelloMacro)]
 pub fn hello_macro_derive(input: TokenStream) -> TokenStream {
     // 基于 input 构建 AST 语法树

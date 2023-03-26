@@ -2,15 +2,25 @@ use world_hello::config;
 use world_hello::tutorial::{fs_demo, macro_demo, rs_demo};
 
 fn main() {
-    unsafe {
-        config::init();
-        println!("{:?}", config::CONFIG);
-    }
+    config::init();
+    update_config(false);
 
     run_demo();
     run_apps();
-
     println!("done");
+}
+
+fn update_config(is_update: bool) {
+    if is_update {
+        unsafe {
+            if let Some(cfg) = &mut config::CONFIG {
+                // let cfg: &mut config::Config = &mut **cfg;
+                println!("old: {:?}", cfg);
+                cfg.b = "newB".to_string();
+                println!("new config: a={},b={}", cfg.a, cfg.b);
+            }
+        }
+    }
 }
 
 fn run_demo() {
