@@ -6,7 +6,7 @@ pub struct Config {
     pub b: String,
 }
 
-pub static mut CONFIG: Option<&mut Config> = None;
+pub static mut CONFIG: Option<&'static mut Config> = None;
 
 pub fn init() {
     unsafe {

@@ -2,12 +2,18 @@ use std::fmt;
 
 // common samples
 
-pub fn greet_world() {
-    let hello = "World, hello";
-    println!("{}", hello);
+pub fn greet_world(is_run: bool) {
+    if is_run {
+        let hello = "World, hello";
+        println!("{}", hello);
+    }
 }
 
-pub fn word_count() {
+pub fn word_count(is_run: bool) {
+    if !is_run {
+        return;
+    }
+
     use std::collections::HashMap;
 
     let text = "hello world wonderful world";
@@ -19,17 +25,26 @@ pub fn word_count() {
     println!("word count: {:?}", map);
 }
 
-pub fn first_word(s: &str) -> &str {
+pub fn first_word(s: &str, is_run: bool) {
+    if !is_run {
+        return;
+    }
+
+    let mut word = &s[..];
     let bytes = s.as_bytes();
     for (i, &item) in bytes.iter().enumerate() {
         if item == b' ' {
-            return &s[0..i];
+            word = &s[0..i];
         }
     }
-    &s[..]
+    println!("first word: {}", word);
 }
 
-pub fn string_parse() {
+pub fn text_parse(is_run: bool) {
+    if !is_run {
+        return;
+    }
+
     let penguin_data = "\
    common name,length (cm)
    Little penguin,33
@@ -57,7 +72,11 @@ pub fn string_parse() {
     }
 }
 
-pub fn get_value_by_input_index() -> () {
+pub fn get_value_by_input_index(is_run: bool) -> () {
+    if !is_run {
+        return;
+    }
+
     let a = [1, 2, 3, 4, 5];
 
     println!("Please enter an array index:");
@@ -73,7 +92,7 @@ pub fn get_value_by_input_index() -> () {
     println!("The value of the element at index {} is: {}", idx, element);
 }
 
-pub fn retain_even(nums: &mut Vec<i32>) {
+pub fn retain_even_numbers(nums: &mut Vec<i32>) {
     let mut i = 0;
     for j in 0..nums.len() {
         if is_even(nums[j]) {
@@ -91,19 +110,12 @@ fn is_even(num: i32) -> bool {
 // trait samples
 
 #[derive(Debug, PartialEq)]
-enum TestFileState {
+enum FileState {
     Open,
     Close,
 }
 
-#[derive(Debug)]
-struct TestFile {
-    name: String,
-    _data: Vec<u8>,
-    state: TestFileState,
-}
-
-impl fmt::Display for TestFileState {
+impl fmt::Display for FileState {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Open => write!(f, "OPEN"),
@@ -112,33 +124,43 @@ impl fmt::Display for TestFileState {
     }
 }
 
-impl fmt::Display for TestFile {
+#[allow(dead_code)]
+#[derive(Debug)]
+struct File {
+    name: String,
+    data: Vec<u8>,
+    state: FileState,
+}
+
+impl fmt::Display for File {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "<{} ({})>", self.name, self.state)
     }
 }
 
-impl TestFile {
-    fn new(name: &str) -> TestFile {
+impl File {
+    fn new(name: &str) -> Self {
         Self {
             name: String::from(name),
-            _data: Vec::new(),
-            state: TestFileState::Close,
+            data: Vec::new(),
+            state: FileState::Close,
         }
     }
 
     fn open(&mut self) {
-        self.state = TestFileState::Open;
+        self.state = FileState::Open;
     }
 }
 
-pub fn display_trait_sample() {
-    let mut f = TestFile::new("ftest.txt");
-    println!("debug: {:?}", f);
-    println!("display: {}", f);
+pub fn display_trait_sample(is_run: bool) {
+    if is_run {
+        let mut f = File::new("ftest.txt");
+        println!("file info (debug): {:?}", f);
+        println!("file info: {}", f);
 
-    f.open();
-    println!("after open: {}", f);
+        f.open();
+        println!("opened file info: {}", f);
+    }
 }
 
 // unit test samples

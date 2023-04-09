@@ -24,29 +24,25 @@ fn update_config(is_update: bool) {
 }
 
 fn run_demo() {
-    if true {
-        rs_demo::greet_world();
-        return;
+    rs_demo::greet_world(true);
+    rs_demo::get_value_by_input_index(false);
+
+    rs_demo::word_count(false);
+    rs_demo::first_word("hello world", false);
+    rs_demo::text_parse(false);
+
+    if false {
+        let mut v = vec![1, 2, 3, 4, 5, 6, 7];
+        rs_demo::retain_even_numbers(&mut v);
+        println!("even num: {:?}", v);
     }
 
-    rs_demo::word_count();
+    rs_demo::display_trait_sample(false);
 
-    let word = rs_demo::first_word("hello world");
-    println!("first word: {}", word);
+    fs_demo::read_file_sample_01(false);
+    fs_demo::read_file_sample_02(false);
 
-    rs_demo::string_parse();
-    rs_demo::get_value_by_input_index();
-
-    let mut v = vec![1, 2, 3, 4, 5, 6, 7];
-    rs_demo::retain_even(&mut v);
-    println!("even num: {:?}", v);
-
-    fs_demo::read_file_sample_01();
-    fs_demo::read_file_sample_02();
-
-    rs_demo::display_trait_sample();
-
-    macro_demo::custom_macro_sample();
+    macro_demo::custom_macro_sample(false);
 }
 
 fn run_apps() {
@@ -56,8 +52,13 @@ fn run_apps() {
     run_app_minigrep(false);
 
     // test:
-    // http://127.0.0.1:7878
-    run_app_webserver(false);
+    // curl http://127.0.0.1:7878/
+    run_app_websrv(false);
+
+    // test:
+    // curl http://127.0.0.1:7878/
+    // curl http://127.0.0.1:7878/sleep
+    run_app_websrv_parallel(true);
 }
 
 fn run_app_minigrep(is_run: bool) {
@@ -67,9 +68,16 @@ fn run_app_minigrep(is_run: bool) {
     }
 }
 
-fn run_app_webserver(is_run: bool) {
+fn run_app_websrv(is_run: bool) {
     if is_run {
         use world_hello::apps::webserver::app_v1 as app;
+        app::tcp_srv();
+    }
+}
+
+fn run_app_websrv_parallel(is_run: bool) {
+    if is_run {
+        use world_hello::apps::webserver::app_v2 as app;
         app::tcp_srv();
     }
 }

@@ -3,6 +3,7 @@ use std::io::{prelude::*, BufReader};
 use std::net::{TcpListener, TcpStream};
 
 // 单线程 web server
+// refer: https://course.rs/advance-practice1/web-server.html
 
 pub fn tcp_srv() {
     let host = "127.0.0.1:7878";

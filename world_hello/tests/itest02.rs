@@ -268,22 +268,29 @@ fn it_generic_for_const() {
 //
 // trait
 //
+// 如果你想要为类型 A 实现特征 T, 那么 A 或者 T 至少有一个是在当前作用域中定义的。
+//
 
 #[test]
-fn it_define_and_impl_trait() {
+fn it_trait_define_and_impl() {
     trait Summary {
+        fn summarize_author(&self) -> String;
         // 默认实现
         fn summarize(&self) -> String {
-            String::from("(read more ...)")
+            format!("(Read more from {}...)", self.summarize_author())
         }
     }
 
+    // Post
     struct Post {
         title: String,
         author: String,
         content: String,
     }
     impl Summary for Post {
+        fn summarize_author(&self) -> String {
+            format!("author:{}", self.author)
+        }
         fn summarize(&self) -> String {
             format!(
                 "title:{}, author:{}, content:{}",
@@ -292,12 +299,6 @@ fn it_define_and_impl_trait() {
         }
     }
 
-    struct Weibo {
-        _username: String,
-        _content: String,
-    }
-    impl Summary for Weibo {}
-
     let post = Post {
         title: "Rust".to_string(),
         author: "Sunface".to_string(),
@@ -305,15 +306,27 @@ fn it_define_and_impl_trait() {
     };
     println!("{}", post.summarize());
 
+    // Weibo
+    #[allow(dead_code)]
+    struct Weibo {
+        username: String,
+        content: String,
+    }
+    impl Summary for Weibo {
+        fn summarize_author(&self) -> String {
+            format!("@{}", self.username)
+        }
+    }
+
     let weibo = Weibo {
-        _username: "sunface".to_string(),
-        _content: "unknown".to_string(),
+        username: "sunface".to_string(),
+        content: "unknown".to_string(),
     };
     println!("{}", weibo.summarize());
 }
 
 #[test]
-fn it_declare_trait_method() {
+fn it_trait_bound_for_fn() {
     fn largest<T: PartialOrd + Copy>(list: &[T]) -> T {
         let mut largest = list[0];
         for &item in list.iter() {
@@ -334,10 +347,52 @@ fn it_declare_trait_method() {
 }
 
 #[test]
-fn it_impl_add_trait() {
+fn it_trait_bound_for_struct_fn() {
+    struct Pair<T> {
+        x: T,
+        y: T,
+    }
+
+    impl<T> Pair<T> {
+        fn new(x: T, y: T) -> Self {
+            Self { x: x, y: y }
+        }
+    }
+
+    // cmp_display 方法，并不是所有的 Pair<T> 结构体对象都可以拥有，只有 T 同时实现了 Display + PartialOrd 的 Pair<T> 才可以拥有此方法
+    impl<T: std::fmt::Display + PartialOrd> Pair<T> {
+        fn cmp_display(&self) {
+            if self.x > self.y {
+                println!("the largest member is x = {}", self.x);
+            } else {
+                println!("the largest member is y = {}", self.y);
+            }
+        }
+    }
+
+    let p = Pair::<i16>::new(10, 20);
+    p.cmp_display();
+}
+
+#[test]
+fn it_trait_expl_import() {
+    // 如果你要使用一个特征的方法，那么你需要将该特征引入当前的作用域中
+    // 最常用的标准库中的特征会通过 std::prelude 模块提前引入到当前作用域中，其中包括了 std::convert::TryInto
+    // use std::convert::TryInto;
+
+    let a: i32 = 10;
+    let b: u16 = 100;
+    let b_ = b.try_into().unwrap();
+    if a < b_ {
+        println!("Ten is less than one hundred");
+    }
+}
+
+#[test]
+fn it_impl_add_trait_sample_01() {
     use std::ops::Add;
 
-    // #1. 两个相同的类型（Point）相加，默认泛型类型参数 trait Add<RHS=Self>
+    // #1: 两个相同的类型（Point）相加
     #[derive(Debug, PartialEq)]
     struct Point {
         x: i32,
@@ -356,12 +411,16 @@ fn it_impl_add_trait() {
         }
     }
 
+    fn add<T: Add<Output = T>>(x: T, y: T) -> T {
+        x + y
+    }
+
     let p1 = Point { x: 1, y: 0 };
     let p2 = Point { x: 2, y: 3 };
-    let result = p1 + p2;
+    let result = add(p1, p2);
     println!("{:?}", result);
 
-    // #2. 两个不同的类型相加
+    // #2: 两个不同的类型相加
     #[derive(Debug)]
     struct Millimeters(u32);
     struct Meters(u32);
@@ -380,10 +439,11 @@ fn it_impl_add_trait() {
 }
 
 #[test]
-fn it_impl_add_trait_method() {
+fn it_impl_add_trait_sample_02() {
     use std::ops::Add;
 
     #[derive(Debug)]
+    // 限制类型 T 必须实现了 Add 特征，否则无法进行 + 操作
     struct Point<T: Add<T, Output = T>> {
         x: T,
         y: T,
@@ -413,34 +473,52 @@ fn it_impl_add_trait_method() {
 }
 
 #[test]
-fn it_impl_cmp_display_trait_method() {
-    struct Pair<T> {
-        x: T,
-        y: T,
-    }
+#[allow(unused)]
+fn it_impl_display_trait_sample() {
+    use std::fmt::{self, Display};
 
-    impl<T> Pair<T> {
-        fn new(x: T, y: T) -> Self {
-            Self { x: x, y: y }
-        }
+    #[derive(Debug, PartialEq)]
+    enum FileState {
+        Open,
+        Close,
     }
-
-    impl<T: std::fmt::Display + PartialOrd> Pair<T> {
-        fn cmp_display(&self) {
-            if self.x > self.y {
-                println!("the largest member is x = {}", self.x);
-            } else {
-                println!("the largest member is y = {}", self.y);
+    impl Display for FileState {
+        fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+            match *self {
+                Self::Open => write!(f, "OPEN"),
+                Self::Close => write!(f, "CLOSE"),
             }
         }
     }
 
-    let p = Pair::<i16>::new(10, 20);
-    p.cmp_display();
+    #[derive(Debug)]
+    struct File {
+        name: String,
+        data: Vec<u8>,
+        state: FileState,
+    }
+    impl File {
+        fn new(name: &str) -> Self {
+            File {
+                name: String::from(name),
+                data: Vec::new(),
+                state: FileState::Close,
+            }
+        }
+    }
+    impl Display for File {
+        fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+            write!(f, "<{} ({})>", self.name, self.state)
+        }
+    }
+
+    let f = File::new("f6");
+    println!("{:?}", f);
+    println!("{}", f);
 }
 
 #[test]
-fn it_define_and_impl_super_trait() {
+fn it_super_trait_define_and_impl() {
     use std::fmt::Display;
 
     trait OutlinePrint: Display {
@@ -472,11 +550,47 @@ fn it_define_and_impl_super_trait() {
 }
 
 //
-// trait object
+// 特征对象
 //
 
 #[test]
-fn it_ui_eles_by_trait_object() {
+fn it_trait_object_usage() {
+    trait Draw {
+        fn draw(&self) -> String;
+    }
+    impl Draw for u8 {
+        fn draw(&self) -> String {
+            format!("u8: {}", *self)
+        }
+    }
+    impl Draw for f64 {
+        fn draw(&self) -> String {
+            format!("f64: {}", *self)
+        }
+    }
+
+    fn draw1(x: Box<dyn Draw>) {
+        // 由于实现了 Deref 特征，Box 智能指针会自动解引用为它所包裹的值，然后调用该值对应的类型上定义的 draw 方法
+        println!("draw1: {}", x.draw());
+    }
+    fn draw2(x: &dyn Draw) {
+        println!("draw2: {}", x.draw());
+    }
+
+    let x = 1.1f64;
+    let y = 8u8;
+
+    // draw1 函数的参数是 Box<dyn Draw> 形式的特征对象，该特征对象是通过 Box::new(x) 的方式创建的
+    draw1(Box::new(x));
+    draw1(Box::new(y));
+
+    // draw2 函数的参数是 &dyn Draw 形式的特征对象，该特征对象是通过 &x 的方式创建的
+    draw2(&x);
+    draw2(&y);
+}
+
+#[test]
+fn it_trait_object_ui_eles_sample() {
     trait Draw {
         fn draw(&self);
     }
@@ -571,7 +685,7 @@ fn it_ipaddrs_by_trait_object() {
 }
 
 #[test]
-fn it_ipaddrs_by_enum() {
+fn it_ipaddrs_by_enum_type() {
     #[derive(Debug)]
     enum IPAddr {
         V4(String),

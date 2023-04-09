@@ -5,6 +5,8 @@ use std::process;
 
 use crate::apps::minigrep::config as cfg;
 
+// refer: https://course.rs/basic-practice/base-features.html
+
 pub fn run() {
     let config = cfg::Config::build(env::args()).unwrap_or_else(|err| {
         eprintln!("problem parsing arguments: {err}");

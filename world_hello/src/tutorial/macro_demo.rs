@@ -4,15 +4,17 @@ pub trait HelloMacro {
     fn hello_macro();
 }
 
-pub fn custom_macro_sample() {
-    use hello_macro_derive::HelloMacro;
+pub fn custom_macro_sample(is_run: bool) {
+    if is_run {
+        use hello_macro_derive::HelloMacro;
 
-    #[derive(HelloMacro)]
-    struct Sunfei;
+        #[derive(HelloMacro)]
+        struct Sunfei;
 
-    #[derive(HelloMacro)]
-    struct Sunface;
+        #[derive(HelloMacro)]
+        struct Sunface;
 
-    Sunfei::hello_macro();
-    Sunface::hello_macro();
+        Sunfei::hello_macro();
+        Sunface::hello_macro();
+    }
 }
