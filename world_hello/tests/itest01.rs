@@ -3,9 +3,33 @@ mod common;
 // integration test
 
 #[test]
-fn it_add_two() {
+fn it_call_shared_common_fn() {
     common::setup();
-    world_hello::add_two(2);
+}
+
+#[test]
+fn it_lib_fn_add_two() {
+    let res = world_hello::add_two(2);
+    println!("result: {res}");
+}
+
+#[test]
+fn it_mod_fn_add_point() {
+    use world_hello::tutorial::{add_point, Point};
+
+    let p1 = Point {
+        x: 1.1f32,
+        y: 1.1f32,
+    };
+    let p2 = Point {
+        x: 2.1f32,
+        y: 2.1f32,
+    };
+    println!("{:?}", add_point(p1, p2));
+
+    let p3 = Point { x: 1i32, y: 1i32 };
+    let p4 = Point { x: 2i32, y: 2i32 };
+    println!("{:?}", add_point(p3, p4));
 }
 
 //

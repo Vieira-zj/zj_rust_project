@@ -1,3 +1,5 @@
+// shared common fn for integration test
+
 pub fn setup() {
-    println!("it setup")
+    println!("integration test setup")
 }

@@ -46,7 +46,7 @@ Create a lib `hello_macro_derive` for custom macro demo:
 cargo new hello_macro_derive --lib
 ```
 
-### Project Structure
+## Project Structure
 
 Refer: <https://github.com/ellie/atuin>
 

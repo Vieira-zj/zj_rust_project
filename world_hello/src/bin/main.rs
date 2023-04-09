@@ -70,14 +70,14 @@ fn run_app_minigrep(is_run: bool) {
 
 fn run_app_websrv(is_run: bool) {
     if is_run {
-        use world_hello::apps::webserver::app_v1 as app;
+        use world_hello::app_v1 as app;
         app::tcp_srv();
     }
 }
 
 fn run_app_websrv_parallel(is_run: bool) {
     if is_run {
-        use world_hello::apps::webserver::app_v2 as app;
+        use world_hello::app_v2 as app;
         app::tcp_srv();
     }
 }

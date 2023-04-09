@@ -59,6 +59,8 @@ impl Drop for ThreadPool {
     }
 }
 
+// worker
+
 struct Worker {
     id: usize,
     // 对于 Option 类型，可以使用 take 方法拿走内部值的所有权
