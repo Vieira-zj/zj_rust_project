@@ -3,6 +3,23 @@
 //
 
 #[test]
+fn it_slice_and_vec() {
+    // 读取使用 &[T] 而不是 &Vec<T>
+    fn find_number(nums: &[i32], dst: i32) -> Option<&i32> {
+        println!("numbers: {:?}", nums);
+        nums.iter().find(|&&x| x == dst)
+    }
+
+    let mut nums = vec![1, 2, 3];
+    nums.push(10);
+
+    match find_number(&nums, 11) {
+        Some(value) => println!("find item: {}", value),
+        None => println!("item not found"),
+    }
+}
+
+#[test]
 fn it_iterator_slice() {
     fn largest_by_ref(values: &[i32]) -> &i32 {
         let mut largest = &values[0];
@@ -24,7 +41,7 @@ fn it_iterator_slice() {
         largest
     }
 
-    let v = [1, 2, 3];
+    let v = [1, 4, 5, 2, 3];
     let result = largest_by_ref(&v);
     println!("largest: {}", result);
 

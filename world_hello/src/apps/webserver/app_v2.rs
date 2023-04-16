@@ -20,7 +20,7 @@ pub fn tcp_srv() {
     // 测试，只接收前两个请求，然后就结束监听，随后 ThreadPool 也将超出作用域并自动触发 drop
     for stream in listener.incoming().take(2) {
         let stream = stream.unwrap();
-        pool.execute(|| {
+        pool.execute(move || {
             handle_connection(stream);
         });
     }

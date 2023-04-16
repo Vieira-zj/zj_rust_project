@@ -16,10 +16,17 @@ $ cargo -V
 Create project:
 
 ```sh
-# new bin project
+# new bin crate
 cargo new world_hello
-# new lib
+# new lib crate
 cargo new world_hello --lib
+```
+
+Create a lib crate `hello_macro_derive` for custom macro:
+
+```sh
+# 宏所在的包必须以 derive 为后缀
+cargo new hello_macro_derive --lib
 ```
 
 Build and run:
@@ -39,14 +46,4 @@ cargo test --no-run
 cargo test
 cargo test -- --show-output
 ```
-
-Create a lib `hello_macro_derive` for custom macro demo:
-
-```sh
-cargo new hello_macro_derive --lib
-```
-
-## Project Structure
-
-Refer: <https://github.com/ellie/atuin>
 

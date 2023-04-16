@@ -58,7 +58,7 @@ fn run_apps() {
     // test:
     // curl http://127.0.0.1:7878/
     // curl http://127.0.0.1:7878/sleep
-    run_app_websrv_parallel(true);
+    run_app_websrv_parallel(false);
 }
 
 fn run_app_minigrep(is_run: bool) {
