@@ -152,7 +152,7 @@ impl File {
     }
 }
 
-pub fn display_trait_sample(is_run: bool) {
+pub fn display_trait(is_run: bool) {
     if is_run {
         let mut f = File::new("ftest.txt");
         println!("file info (debug): {:?}", f);

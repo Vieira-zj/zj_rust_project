@@ -12,7 +12,7 @@ struct Sunfei;
 #[derive(HelloMacro)]
 struct Sunface;
 
-pub fn custom_macro_sample(is_run: bool) {
+pub fn custom_macro(is_run: bool) {
     if is_run {
         Sunfei::hello_macro();
         Sunface::hello_macro();

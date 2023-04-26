@@ -7,7 +7,7 @@ fn main() {
 
     run_demo();
     run_apps();
-    println!("done");
+    println!("main done");
 }
 
 fn update_config(is_update: bool) {
@@ -37,12 +37,12 @@ fn run_demo() {
         println!("even num: {:?}", v);
     }
 
-    rs_demo::display_trait_sample(false);
+    rs_demo::display_trait(false);
 
-    fs_demo::read_file_sample_01(false);
-    fs_demo::read_file_sample_02(false);
+    fs_demo::read_file_v1(false);
+    fs_demo::read_file_v2(false);
 
-    macro_demo::custom_macro_sample(false);
+    macro_demo::custom_macro(false);
 }
 
 fn run_apps() {
@@ -59,6 +59,8 @@ fn run_apps() {
     // curl http://127.0.0.1:7878/
     // curl http://127.0.0.1:7878/sleep
     run_app_websrv_parallel(false);
+
+    run_app_aysnc(false);
 }
 
 fn run_app_minigrep(is_run: bool) {
@@ -70,14 +72,21 @@ fn run_app_minigrep(is_run: bool) {
 
 fn run_app_websrv(is_run: bool) {
     if is_run {
-        use world_hello::app_v1 as app;
+        use world_hello::webserver::app_v1 as app;
         app::tcp_srv();
     }
 }
 
 fn run_app_websrv_parallel(is_run: bool) {
     if is_run {
-        use world_hello::app_v2 as app;
+        use world_hello::webserver::app_v2 as app;
         app::tcp_srv();
+    }
+}
+
+fn run_app_aysnc(is_run: bool) {
+    if is_run {
+        use world_hello::runasync::app;
+        app::start();
     }
 }

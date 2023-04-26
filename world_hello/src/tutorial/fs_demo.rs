@@ -3,7 +3,7 @@ use std::io::Read;
 
 // file io samples
 
-pub fn read_file_sample_01(is_run: bool) {
+pub fn read_file_v1(is_run: bool) {
     if !is_run {
         return;
     }
@@ -21,7 +21,7 @@ fn read_from_file(path: &str) -> Result<String, std::io::Error> {
     Ok(s)
 }
 
-pub fn read_file_sample_02(is_run: bool) {
+pub fn read_file_v2(is_run: bool) {
     if !is_run {
         return;
     }

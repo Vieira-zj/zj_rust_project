@@ -2,7 +2,7 @@ pub mod apps;
 pub mod config;
 pub mod tutorial;
 
-pub use self::apps::webserver::{app_v1, app_v2};
+pub use self::apps::{runasync, webserver};
 
 // fn for integration test
 
