@@ -577,10 +577,13 @@ fn it_async_hello_world() {
 //
 
 #[test]
-fn it_pin_selfref_sample() {
+fn it_pin_selfref_issue() {
+    // Test 为一个自引用结构体
     #[derive(Debug)]
     struct Test {
         a: String,
+        // 这里 b 是 a 的一个引用，但是我们并没有使用引用类型而是用了裸指针
+        // 原因是 Rust 的借用规则不允许我们这样用，因为不符合生命周期的要求
         b: *const String,
     }
 
@@ -617,17 +620,110 @@ fn it_pin_selfref_sample() {
     println!("a: {}, b: {}", test1.a(), test1.b());
     println!("a: {}, b: {}", test2.a(), test2.b());
 
+    // 移动数据，b 指针依然指向了旧的地址
     std::mem::swap(&mut test1, &mut test2);
     println!("a: {}, b: {}", test1.a(), test1.b());
     println!("a: {}, b: {}", test2.a(), test2.b());
 }
 
 #[test]
-fn it_pin_ref_to_stack() {
-    // TODO:
+fn it_pin_selfref_to_stack() {
+    // 将值固定到栈上
+    use std::marker::PhantomPinned;
+    use std::pin::Pin;
+
+    #[derive(Debug)]
+    struct Test {
+        a: String,
+        b: *const String,
+        // 这个标记可以让我们的类型自动实现特征 !Unpin
+        _marker: PhantomPinned,
+    }
+
+    impl Test {
+        fn new(txt: &str) -> Self {
+            Test {
+                a: String::from(txt),
+                b: std::ptr::null(),
+                _marker: PhantomPinned,
+            }
+        }
+
+        fn init(self: Pin<&mut Self>) {
+            let self_ptr: *const String = &self.a;
+            let this = unsafe { self.get_unchecked_mut() };
+            this.b = self_ptr;
+        }
+
+        fn a(self: Pin<&Self>) -> &str {
+            &(self.get_ref().a)
+        }
+
+        fn b(self: Pin<&Self>) -> &String {
+            assert!(
+                !self.b.is_null(),
+                "Test::b called without Test::init being called first"
+            );
+            unsafe { &*(self.b) }
+        }
+    }
+
+    let mut test1 = Test::new("test1");
+    let mut test1 = unsafe { Pin::new_unchecked(&mut test1) };
+    Test::init(test1.as_mut());
+
+    let mut test2 = Test::new("test2");
+    let mut test2 = unsafe { Pin::new_unchecked(&mut test2) };
+    Test::init(test2.as_mut());
+
+    println!(
+        "a: {}, b: {}",
+        Test::a(test1.as_ref()),
+        Test::b(test1.as_ref())
+    );
+
+    // 尝试移动被固定的值，会导致编译错误
+    // std::mem::swap(test1.get_mut(), test2.get_mut());
 }
 
 #[test]
-fn it_pin_ref_to_heap() {
-    // TODO:
+fn it_pin_selfref_to_heap() {
+    // 固定到堆上
+    use std::marker::PhantomPinned;
+    use std::pin::Pin;
+
+    #[derive(Debug)]
+    struct Test {
+        a: String,
+        b: *const String,
+        _marker: PhantomPinned,
+    }
+
+    impl Test {
+        fn new(txt: &str) -> Pin<Box<Test>> {
+            let t = Test {
+                a: String::from(txt),
+                b: std::ptr::null(),
+                _marker: PhantomPinned,
+            };
+            let mut boxed = Box::pin(t);
+            let self_ptr: *const String = &boxed.as_ref().a;
+            unsafe { boxed.as_mut().get_unchecked_mut().b = self_ptr };
+            boxed
+        }
+
+        fn a(self: Pin<&Self>) -> &str {
+            &(self.get_ref().a)
+        }
+
+        fn b(self: Pin<&Self>) -> &String {
+            unsafe { &*(self.b) }
+        }
+    }
+
+    let test1 = Test::new("test1");
+    let test2 = Test::new("test2");
+
+    println!("a: {}, b: {}", test1.as_ref().a(), test1.as_ref().b());
+    println!("a: {}, b: {}", test2.as_ref().a(), test2.as_ref().b());
 }
