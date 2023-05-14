@@ -64,6 +64,8 @@ impl Executor {
                 println!("Executor.run init ctx, and invoke future poll()");
                 let waker = waker_ref(&task);
                 let context = &mut Context::from_waker(&*waker);
+                // `BoxFuture<T>`是`Pin<Box<dyn Future<Output = T> + Send + 'static>>`的类型别名
+                // 通过调用`as_mut`方法，可以将上面的类型转换成`Pin<&mut dyn Future + Send + 'static>`
                 if future.as_mut().poll(context).is_pending() {
                     // Future还没执行完，因此将它放回任务中，等待下次被poll
                     *future_slot = Some(future);

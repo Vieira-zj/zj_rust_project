@@ -9,6 +9,8 @@ pub fn tcp_srv() {
     let host = "127.0.0.1:7878";
     println!("http serve at: {host}");
     let listener = TcpListener::bind(host).unwrap();
+
+    // 阻塞等待请求的进入
     for stream in listener.incoming() {
         let stream = stream.unwrap();
         handle_connection(stream);
@@ -24,6 +26,7 @@ fn handle_connection(mut stream: TcpStream) {
         ("HTTP/1.1 404 NOT FOUND", "404.html")
     };
 
+    // 读取文件内容写入连接缓存中
     let mut file_path = String::from("/tmp/test/");
     file_path.push_str(filename);
     let contents = fs::read_to_string(file_path).unwrap();
@@ -31,6 +34,7 @@ fn handle_connection(mut stream: TcpStream) {
 
     let resp = format!("{status_line}\r\nContent-Length: {length}\r\n\r\n{contents}");
     stream.write_all(resp.as_bytes()).unwrap();
+    stream.flush().unwrap();
 }
 
 #[allow(dead_code)]
@@ -49,6 +53,7 @@ fn handle_connection_deprecated(mut stream: TcpStream) {
 
     let resp = format!("{status_line}\r\nContent-Length: {length}\r\n\r\n{contents}");
     stream.write_all(resp.as_bytes()).unwrap();
+    stream.flush().unwrap();
 }
 
 /*

@@ -556,20 +556,145 @@ fn it_atomic_var_ordering() {
 //
 
 #[test]
-fn it_async_hello_world() {
+fn it_async_run_future() {
     use futures::executor::block_on;
 
+    async fn hello_cat() {
+        println!("hello, kitty!");
+    }
     async fn hello_world() {
         hello_cat().await;
         println!("hello, world!");
     }
 
-    async fn hello_cat() {
-        println!("hello, kitty!");
-    }
-
     let future = hello_world();
     block_on(future);
+    println!("future done");
+}
+
+#[test]
+fn it_async_join_futures() {
+    use futures::executor::block_on;
+
+    struct Song {
+        author: String,
+        name: String,
+    }
+
+    async fn learn_song() -> Song {
+        Song {
+            author: "foo".to_string(),
+            name: String::from("test_song"),
+        }
+    }
+    async fn sing_song(song: Song) {
+        println!("sing song: author={}, name={}", song.author, song.name);
+    }
+    async fn dance() {
+        println!("dance");
+    }
+    async fn learn_and_sing() {
+        let song = learn_song().await;
+        sing_song(song).await;
+    }
+
+    async fn async_main() {
+        let f1 = learn_and_sing();
+        let f2 = dance();
+        futures::join!(f1, f2); // 并发处理
+    }
+
+    block_on(async_main());
+    println!("join futures done");
+}
+
+#[test]
+fn it_async_try_join_futures() {
+    use futures::executor::block_on;
+    use futures::{future::TryFutureExt, try_join};
+
+    struct Book {
+        name: String,
+    }
+    struct Music {
+        name: String,
+    }
+
+    async fn get_book() -> Result<Book, ()> {
+        Ok(Book {
+            name: "test_book".to_string(),
+        })
+    }
+    async fn get_music() -> Result<Music, String> {
+        Ok(Music {
+            name: "test_music".to_string(),
+        })
+    }
+    async fn get_book_and_music() -> Result<(Book, Music), String> {
+        // 注意，传给 try_join! 的所有 Future 都必须拥有相同的错误类型，这里使用 map_err 将错误进行转换
+        let book_fut = get_book().map_err(|()| "book not found".to_string());
+        let music_fut = get_music();
+        try_join!(book_fut, music_fut)
+    }
+
+    match block_on(get_book_and_music()) {
+        Ok(item) => println!("book={}, music={}", item.0.name, item.1.name),
+        Err(err) => println!("{}", err),
+    }
+    println!("try join futures done");
+}
+
+#[test]
+fn it_async_select_futures() {
+    use futures::executor::block_on;
+    use futures::stream::{FusedStream, Stream, StreamExt};
+    use futures::{future, select};
+
+    async fn add_two_futures() {
+        let mut a_fut = future::ready(4);
+        let mut b_fut = future::ready(6);
+        let mut total = 0;
+
+        loop {
+            select! {
+               a = a_fut => total += a,
+               b = b_fut => total += b,
+               complete => break, // 所有的 Future 完成后执行
+               default => panic!(), // not happen
+            }
+        }
+
+        println!("total={}", total);
+        assert_eq!(total, 10);
+    }
+
+    #[allow(dead_code)]
+    async fn add_two_streams<T>(mut s1: T, mut s2: T) -> u8
+    where
+        // - Unpin, 由于 select 不会通过拿走所有权的方式使用 Future, 而是通过可变引用的方式去使用，
+        // 这样当 select 结束后，该 Future 若没有被完成，它的所有权还可以继续被其它代码使用
+        //
+        // - FusedFuture 的原因跟上面类似，当 Future 一旦完成后，那 select 就不能再对其进行轮询使用。
+        // Fuse 意味着熔断，相当于 Future 一旦完成，再次调用 poll 会直接返回 Poll::Pending
+        T: Stream<Item = u8> + FusedStream + Unpin,
+    {
+        let mut total = 0;
+        loop {
+            let item = select! {
+                x = s1.next() => x,
+                x = s2.next() => x,
+                complete => break,
+            };
+            if let Some(next_num) = item {
+                total += next_num;
+            }
+        }
+
+        total
+    }
+
+    block_on(add_two_futures());
+    println!("select futures done");
 }
 
 //
@@ -617,13 +742,13 @@ fn it_pin_selfref_issue() {
     test1.init();
     let mut test2 = Test::new("test2");
     test2.init();
-    println!("a: {}, b: {}", test1.a(), test1.b());
-    println!("a: {}, b: {}", test2.a(), test2.b());
+    println!("test1: a->{}, b->{}", test1.a(), test1.b());
+    println!("test2: a->{}, b->{}", test2.a(), test2.b());
 
     // 移动数据，b 指针依然指向了旧的地址
     std::mem::swap(&mut test1, &mut test2);
-    println!("a: {}, b: {}", test1.a(), test1.b());
-    println!("a: {}, b: {}", test2.a(), test2.b());
+    println!("test1: a->{}, b->{}", test1.a(), test1.b());
+    println!("test2: a->{}, b->{}", test2.a(), test2.b());
 }
 
 #[test]
@@ -670,14 +795,14 @@ fn it_pin_selfref_to_stack() {
 
     let mut test1 = Test::new("test1");
     let mut test1 = unsafe { Pin::new_unchecked(&mut test1) };
-    Test::init(test1.as_mut());
+    Test::init(test1.as_mut()); // 直接调用对象方法
 
     let mut test2 = Test::new("test2");
     let mut test2 = unsafe { Pin::new_unchecked(&mut test2) };
     Test::init(test2.as_mut());
 
     println!(
-        "a: {}, b: {}",
+        "test1: a->{}, b->{}",
         Test::a(test1.as_ref()),
         Test::b(test1.as_ref())
     );
@@ -688,7 +813,7 @@ fn it_pin_selfref_to_stack() {
 
 #[test]
 fn it_pin_selfref_to_heap() {
-    // 固定到堆上
+    // 将一个 !Unpin 类型的值固定到堆上，会给予该值一个稳定的内存地址，它指向的堆中的值在 Pin 后是无法被移动的
     use std::marker::PhantomPinned;
     use std::pin::Pin;
 
@@ -724,6 +849,14 @@ fn it_pin_selfref_to_heap() {
     let test1 = Test::new("test1");
     let test2 = Test::new("test2");
 
-    println!("a: {}, b: {}", test1.as_ref().a(), test1.as_ref().b());
-    println!("a: {}, b: {}", test2.as_ref().a(), test2.as_ref().b());
+    println!(
+        "test1: a->{}, b->{}",
+        test1.as_ref().a(),
+        test1.as_ref().b()
+    );
+    println!(
+        "test2: a->{}, b->{}",
+        test2.as_ref().a(),
+        test2.as_ref().b()
+    );
 }
