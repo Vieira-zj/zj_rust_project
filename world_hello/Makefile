@@ -1,5 +1,7 @@
 default: run
 
 run:
-	@cargo run
-	# cargo run --bin main
+	@cargo run --bin main
+
+run-async:
+	@cargo run --bin async_main

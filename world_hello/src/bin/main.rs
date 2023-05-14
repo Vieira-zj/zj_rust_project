@@ -46,6 +46,8 @@ fn run_demo() {
 }
 
 fn run_apps() {
+    run_app_aysnc_executor(false);
+
     // test:
     // cargo run -- body /tmp/test/poem.txt
     // IGNORE_CASE=1 cargo run -- to /tmp/test/poem.txt
@@ -58,9 +60,7 @@ fn run_apps() {
     // test:
     // curl http://127.0.0.1:7878/
     // curl http://127.0.0.1:7878/sleep
-    run_app_websrv_parallel(false);
-
-    run_app_aysnc(false);
+    run_app_parallel_websrv(false);
 }
 
 fn run_app_minigrep(is_run: bool) {
@@ -77,16 +77,16 @@ fn run_app_websrv(is_run: bool) {
     }
 }
 
-fn run_app_websrv_parallel(is_run: bool) {
+fn run_app_parallel_websrv(is_run: bool) {
     if is_run {
         use world_hello::webserver::app_v2 as app;
         app::tcp_srv();
     }
 }
 
-fn run_app_aysnc(is_run: bool) {
+fn run_app_aysnc_executor(is_run: bool) {
     if is_run {
-        use world_hello::runasync::app;
+        use world_hello::async_executor::app;
         app::start();
     }
 }

@@ -79,11 +79,11 @@ hello.html
 <html lang="en">
   <head>
     <meta charset="utf-8">
-    <title>你好!</title>
+    <title>Hello!</title>
   </head>
   <body>
-    <h1>很抱歉!</h1>
-    <p>由于运维删库跑路，我们的数据全部丢失，总监也已经准备跑路，88</p>
+    <h1>Oops!</h1>
+    <p>Sorry, I don't know what you're asking for.</p>
   </body>
 </html>
 */
