@@ -19,5 +19,5 @@ pub fn start() {
     drop(spawner);
 
     executor.run();
-    println!("run async demo done");
+    println!("run async executor demo done");
 }

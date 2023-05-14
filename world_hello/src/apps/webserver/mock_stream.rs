@@ -15,6 +15,7 @@ impl Read for MockTcpStream {
         _: &mut Context<'_>,
         buf: &mut [u8],
     ) -> Poll<std::io::Result<usize>> {
+        // read: io -> buf
         let size = min(self.read_data.len(), buf.len());
         buf[..size].copy_from_slice(&self.read_data[..size]);
         Poll::Ready(Ok(size))
@@ -27,6 +28,7 @@ impl Write for MockTcpStream {
         _: &mut Context<'_>,
         buf: &[u8],
     ) -> Poll<std::io::Result<usize>> {
+        // write: buf -> io
         self.write_data = Vec::from(buf);
         Poll::Ready(Ok(buf.len()))
     }

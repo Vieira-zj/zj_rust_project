@@ -87,7 +87,7 @@ fn it_mut_borrow_02() {
 #[test]
 fn it_return_fn_local_str() {
     fn get_str<'a>() -> &'a str {
-        // s 的作用域为 get_str 函数，而字符串字面量 "hello" 的生命周期是 'static
+        // String 的作用域为 get_str 函数，而字符串字面量 "hello" 的生命周期是 'static
         // error
         // let s = String::from("hello");
         // return s.as_str();
