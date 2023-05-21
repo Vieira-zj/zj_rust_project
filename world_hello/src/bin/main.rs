@@ -1,5 +1,5 @@
 use world_hello::config;
-use world_hello::tutorial::{fs_demo, macro_demo, rs_demo};
+use world_hello::tutorial::{fsdemo, macrodemo, rsdemo};
 
 fn main() {
     config::init();
@@ -24,25 +24,25 @@ fn update_config(is_update: bool) {
 }
 
 fn run_demo() {
-    rs_demo::greet_world(true);
-    rs_demo::get_value_by_input_index(false);
+    rsdemo::greet_world(true);
+    rsdemo::get_value_by_input_index(false);
 
-    rs_demo::word_count(false);
-    rs_demo::first_word("hello world", false);
-    rs_demo::text_parse(false);
+    rsdemo::word_count(false);
+    rsdemo::first_word("hello world", false);
+    rsdemo::text_parse(false);
 
     if false {
         let mut v = vec![1, 2, 3, 4, 5, 6, 7];
-        rs_demo::retain_even_numbers(&mut v);
+        rsdemo::retain_even_numbers(&mut v);
         println!("even num: {:?}", v);
     }
 
-    rs_demo::display_trait(false);
+    rsdemo::display_trait(false);
 
-    fs_demo::read_file_v1(false);
-    fs_demo::read_file_v2(false);
+    fsdemo::read_file_v1(false);
+    fsdemo::read_file_v2(false);
 
-    macro_demo::custom_macro(false);
+    macrodemo::custom_macro(false);
 }
 
 fn run_apps() {
@@ -72,14 +72,14 @@ fn run_app_minigrep(is_run: bool) {
 
 fn run_app_websrv(is_run: bool) {
     if is_run {
-        use world_hello::webserver::app_v1 as app;
+        use world_hello::webserver::appv1 as app;
         app::tcp_srv();
     }
 }
 
 fn run_app_parallel_websrv(is_run: bool) {
     if is_run {
-        use world_hello::webserver::app_v2 as app;
+        use world_hello::webserver::appv2 as app;
         app::tcp_srv();
     }
 }

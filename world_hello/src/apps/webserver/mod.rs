@@ -1,5 +1,5 @@
-pub mod app_v1;
-pub mod app_v2;
-pub mod app_v3;
+pub mod appv1;
+pub mod appv2;
+pub mod appv3;
 mod mock_stream;
 mod pool;

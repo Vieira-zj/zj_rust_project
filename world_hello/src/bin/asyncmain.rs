@@ -1,4 +1,4 @@
-use world_hello::webserver::app_v3 as webapp;
+use world_hello::webserver::appv3 as webapp;
 
 #[async_std::main]
 async fn main() {

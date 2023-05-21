@@ -1,6 +1,6 @@
-pub mod fs_demo;
-pub mod macro_demo;
-pub mod rs_demo;
+pub mod fsdemo;
+pub mod macrodemo;
+pub mod rsdemo;
 
 // demo: trait
 

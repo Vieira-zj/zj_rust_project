@@ -3,13 +3,13 @@ use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use tokio::net::TcpListener;
 
-// 实现一个简单 redis
-// refer: https://course.rs/advance-practice/intro.html
+// mini redis cache server
 
 #[allow(dead_code)]
 pub async fn srv() {
-    let listener = TcpListener::bind("127.0.0.1:6379").await.unwrap();
-    println!("Listening");
+    let addr = "127.0.0.1:6379";
+    let listener = TcpListener::bind(addr).await.unwrap();
+    println!("Listening: {}", addr);
 
     let db: process::Db = Arc::new(Mutex::new(HashMap::new()));
 
@@ -18,8 +18,9 @@ pub async fn srv() {
         let db = db.clone();
 
         println!("Accepted");
-        tokio::spawn(async move {
+        let t = tokio::spawn(async move {
             process::run(socket, db).await;
         });
+        t.await.unwrap();
     }
 }

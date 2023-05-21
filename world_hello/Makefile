@@ -4,7 +4,10 @@ run:
 	@cargo run --bin main
 
 run-async:
-	@cargo run --bin async_main
+	@cargo run --bin asyncmain
 
-run-cache:
-	@cargo run --bin cache_main
+run-cache-server:
+	@cargo run --bin cacheserver
+
+run-cache-client:
+	@cargo run --bin cacheclient

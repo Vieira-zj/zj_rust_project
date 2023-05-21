@@ -167,7 +167,7 @@ fn it_thread_sync_call_once() {
 // Channel: send and receive message
 //
 // 关闭通道
-// 所有发送者被drop或者所有接收者被drop后，通道会自动关闭。
+// 所有发送者被 drop 或者所有接收者被 drop 后，通道会自动关闭。
 //
 
 #[test]
