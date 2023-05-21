@@ -1517,6 +1517,7 @@ name = "world_hello"
 version = "0.1.0"
 dependencies = [
  "async-std",
+ "bytes",
  "futures",
  "hello_macro_derive",
  "lazy_static",

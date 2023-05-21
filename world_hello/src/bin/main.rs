@@ -86,7 +86,7 @@ fn run_app_parallel_websrv(is_run: bool) {
 
 fn run_app_aysnc_executor(is_run: bool) {
     if is_run {
-        use world_hello::async_executor::app;
+        use world_hello::executor::app;
         app::start();
     }
 }

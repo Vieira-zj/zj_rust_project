@@ -1,7 +1,8 @@
-use crate::apps::async_executor::{executor, future};
+use crate::apps::executor::{executor, future};
 use std::time::Duration;
 
-// 执行流程：
+//
+// async executor 执行流程：
 //
 // 执行器会管理一批 Future (最外层的 async 函数), 然后通过不停地 poll 推动它们直到完成。
 // 最开始，执行器会先 poll 一次 Future, 后面就不会主动去 poll 了，而是等待 Future 通过调用 wake 函数来通知它可以继续，它才会继续去 poll.

@@ -2,7 +2,7 @@ pub mod apps;
 pub mod config;
 pub mod tutorial;
 
-pub use self::apps::{async_executor, webserver};
+pub use self::apps::{executor, webserver};
 
 // fn for integration test
 
