@@ -11,3 +11,6 @@ run-cache-server:
 
 run-cache-client:
 	@cargo run --bin cacheclient
+
+run-echo-server:
+	@cargo run --bin echoserver
