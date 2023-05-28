@@ -2,6 +2,7 @@ use bytes::Bytes;
 use mini_redis::{client, Result};
 use tokio::sync::mpsc;
 use tokio::sync::oneshot;
+use tokio::time;
 use tokio_stream::StreamExt;
 
 // mini redis client
@@ -32,7 +33,7 @@ async fn run_subscribe_client(is_run: bool) -> mini_redis::Result<()> {
 
 async fn publish() -> mini_redis::Result<()> {
     let mut client = client::connect("127.0.0.1:6379").await?;
-    tokio::time::sleep(std::time::Duration::from_millis(10)).await;
+    time::sleep(time::Duration::from_millis(10)).await;
 
     client.publish("numbers", "1".into()).await?;
     client.publish("numbers", "two".into()).await?;

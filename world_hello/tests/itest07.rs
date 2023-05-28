@@ -132,12 +132,11 @@ async fn it_tokio_select() {
 
 #[tokio::test]
 async fn it_tokio_select_cancel() {
-    use std::time::Duration;
     use tokio::{sync::oneshot, time};
 
     async fn some_operation() -> String {
         println!("some_operation start");
-        time::sleep(Duration::from_secs(3)).await;
+        time::sleep(time::Duration::from_secs(3)).await;
         println!("some_operation end");
         String::from("some operation")
     }
@@ -170,7 +169,7 @@ async fn it_tokio_select_cancel() {
         }
     }
 
-    time::sleep(Duration::from_secs(1)).await;
+    time::sleep(time::Duration::from_secs(1)).await;
     println!("tokio select demo done");
 }
 
@@ -210,12 +209,11 @@ async fn it_tokio_select_with_else() {
 
 #[tokio::test]
 async fn it_tokio_select_in_loop() {
-    use std::time::Duration;
     use tokio::{sync::mpsc, time};
 
     async fn action() {
         for i in 1..=3 {
-            time::sleep(Duration::from_secs(1)).await;
+            time::sleep(time::Duration::from_secs(1)).await;
             println!("do action at {}", i);
         }
     }
@@ -224,7 +222,7 @@ async fn it_tokio_select_in_loop() {
 
     tokio::spawn(async move {
         for i in 1..=3 {
-            time::sleep(Duration::from_millis(1100)).await;
+            time::sleep(time::Duration::from_millis(1100)).await;
             println!("send {} to channel", i);
             tx.send(i).await.unwrap();
         }
@@ -308,13 +306,12 @@ async fn it_tokio_stream() {
 
 #[tokio::test]
 async fn it_tokio_stream_in_loop() {
-    use std::time::Duration;
     use tokio::{sync::oneshot, time};
     use tokio_stream::StreamExt;
 
     let (tx, mut rx) = oneshot::channel();
     tokio::spawn(async move {
-        time::sleep(Duration::from_millis(700)).await;
+        time::sleep(time::Duration::from_millis(700)).await;
         tx.send(1)
     });
 
@@ -327,7 +324,7 @@ async fn it_tokio_stream_in_loop() {
                 break;
             }
             Some(v) = stream.next() => {
-                time::sleep(Duration::from_millis(500)).await;
+                time::sleep(time::Duration::from_millis(500)).await;
                 println!("got {}", v);
             }
         }
@@ -338,7 +335,171 @@ async fn it_tokio_stream_in_loop() {
 
 #[tokio::test]
 async fn it_waitgroup_by_channel() {
-    // TODO:
+    use tokio::sync::mpsc::{self, Sender};
+    use tokio::time::{sleep, Duration};
+
+    async fn some_operation(i: u64, _sender: Sender<()>) {
+        sleep(Duration::from_millis(i * 100)).await;
+        println!("task {} shutting down", i);
+        // 发送端超出作用域，然后被 drop
+    }
+
+    let (tx, mut rx) = mpsc::channel(1);
+
+    for i in 1..10 {
+        tokio::spawn(some_operation(i, tx.clone()));
+    }
+
+    // 我们需要 drop 自己的发送端
+    drop(tx);
+
+    // 等待各个任务的完成
+    // 当所有发送端都超出作用域被 drop 时，recv 调用会返回一个错误
+    let _ = rx.recv().await;
+    println!("waitgroup demo done");
+}
+
+#[test]
+fn it_tokio_runtime() {
+    tokio::runtime::Builder::new_multi_thread()
+        .enable_all()
+        .build()
+        .unwrap()
+        .block_on(async {
+            println!("async hello world");
+        })
+}
+
+#[test]
+fn it_tokio_runtime_spawn() {
+    use tokio::runtime::Builder;
+    use tokio::time::{sleep, Duration};
+
+    async fn my_bg_task(i: u64) {
+        let millis = 1000 - 50 * i;
+        println!("task {} sleeping for {} ms", i, millis);
+        sleep(Duration::from_millis(millis)).await;
+        println!("task {} stopping", i);
+    }
+
+    // 这里只能使用 multi_thread 运行时
+    // 因为在 current_thread 模式下，生成的任务只会在 block_on 期间才执行
+    let runtime = Builder::new_multi_thread()
+        .worker_threads(1)
+        .enable_all()
+        .build()
+        .unwrap();
+
+    let mut handlers = Vec::with_capacity(10);
+    for i in 0..10 {
+        let handler = runtime.spawn(my_bg_task(i));
+        handlers.push(handler);
+    }
+
+    std::thread::sleep(Duration::from_millis(750));
+    println!("main: finished time-consuming task");
+
+    // 等待这些后台任务的完成
+    // 在 multi_thread 模式下，我们并不需要通过 block_on 来触发任务的运行，这里仅仅是用来阻塞并等待最终的结果
+    for handler in handlers {
+        runtime.block_on(handler).unwrap();
+    }
+    println!("tokio runtime demo done");
+}
+
+// TaskSpawner
+
+struct Task {
+    name: String,
+}
+
+#[derive(Clone)]
+struct TaskSpawner {
+    spawn: tokio::sync::mpsc::Sender<Task>,
+}
+
+impl TaskSpawner {
+    fn new() -> Self {
+        // 创建一个消息通道用于通信
+        let (tx, mut rx) = tokio::sync::mpsc::channel(1);
+
+        let rt = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .unwrap();
+
+        std::thread::spawn(move || {
+            rt.block_on(async move {
+                while let Some(task) = rx.recv().await {
+                    handle_task(task).await;
+                }
+            })
+        });
+
+        TaskSpawner { spawn: tx }
+    }
+
+    fn spawn_task(&self, task: Task) {
+        match self.spawn.blocking_send(task) {
+            Ok(()) => {}
+            Err(_) => panic!("the shared runtime has shut down"),
+        }
+    }
+
+    fn close(self) {
+        drop(self.spawn);
+    }
+}
+
+async fn handle_task(task: Task) {
+    println!("got task {}", task.name);
+}
+
+#[test]
+fn it_tokio_runtime_taskspawner() {
+    let spawner = TaskSpawner::new();
+    for i in 0..10 {
+        spawner.spawn_task(Task {
+            name: i.to_string(),
+        });
+    }
+
+    spawner.close();
+    println!("tokio runtime demo done");
+}
+
+#[tokio::test]
+async fn it_custom_delay_future() {
+    use std::future::Future;
+    use std::pin::Pin;
+    use std::task::{Context, Poll};
+    use std::time::{Duration, Instant};
+
+    struct Delay {
+        when: Instant,
+    }
+
+    impl Future for Delay {
+        type Output = &'static str;
+
+        fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+            if Instant::now() >= self.when {
+                println!("future ready");
+                Poll::Ready("done")
+            } else {
+                cx.waker().wake_by_ref();
+                Poll::Pending
+            }
+        }
+    }
+
+    let when = Instant::now() + Duration::from_millis(30);
+    let future = Delay { when: when };
+
+    // 运行并等待 Future 的完成
+    let out = future.await;
+    assert_eq!(out, "done");
+    println!("custom future demo done");
 }
 
 //
