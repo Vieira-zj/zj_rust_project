@@ -1,5 +1,6 @@
 //
 // Async Runtime: Tokio
+// https://course.rs/advance-practice/io.html
 //
 
 #[tokio::test]
@@ -105,6 +106,7 @@ async fn it_tokio_io_copy() {
 
 #[tokio::test]
 async fn it_tokio_select() {
+    // select! 宏在单个任务中实现了多路复用的功能
     use tokio::sync::oneshot;
 
     let (tx1, rx1) = oneshot::channel();
@@ -129,7 +131,7 @@ async fn it_tokio_select() {
 }
 
 #[tokio::test]
-async fn it_tokio_select_with_cancel() {
+async fn it_tokio_select_cancel() {
     use std::time::Duration;
     use tokio::{sync::oneshot, time};
 
@@ -192,10 +194,10 @@ async fn it_tokio_select_with_else() {
 
     // 模式匹配，若之前的分支都无法被匹配，那 else 分支将被执行
     tokio::select! {
-        Some(v) = async { rx1.await.unwrap() } => {
+        Some(v) = async move { rx1.await.unwrap() } => {
             println!("Got {:?} from rx1", v);
         }
-        Some(v) = async { rx2.await.unwrap() } => {
+        Some(v) = async move { rx2.await.unwrap() } => {
             println!("Got {:?} from rx2", v);
         }
         else => {
@@ -208,6 +210,134 @@ async fn it_tokio_select_with_else() {
 
 #[tokio::test]
 async fn it_tokio_select_in_loop() {
+    use std::time::Duration;
+    use tokio::{sync::mpsc, time};
+
+    async fn action() {
+        for i in 1..=3 {
+            time::sleep(Duration::from_secs(1)).await;
+            println!("do action at {}", i);
+        }
+    }
+
+    let (tx, mut rx) = mpsc::channel(2);
+
+    tokio::spawn(async move {
+        for i in 1..=3 {
+            time::sleep(Duration::from_millis(1100)).await;
+            println!("send {} to channel", i);
+            tx.send(i).await.unwrap();
+        }
+    });
+
+    let operation = action();
+    tokio::pin!(operation);
+
+    loop {
+        tokio::select! {
+            // 当加了 &mut operatoion 后，每一次循环调用就变成了对同一次 action() 的调用。也就是我们实现了在每次循环中恢复了之前的异步操作
+            _ = &mut operation => break,
+            Some(v) = rx.recv() => {
+                if v % 2 == 0 {
+                    break;
+                }
+            }
+        }
+    }
+
+    println!("tokio select demo done");
+}
+
+#[tokio::test]
+async fn it_tokio_select_cond_in_loop() {
+    async fn action(input: Option<i32>) -> Option<String> {
+        let i = match input {
+            Some(v) => v,
+            None => return None,
+        };
+
+        Some(i.to_string())
+    }
+
+    let (tx, mut rx) = tokio::sync::mpsc::channel(2);
+
+    let mut done = false;
+    let operation = action(None);
+    tokio::pin!(operation);
+
+    tokio::spawn(async move {
+        let _ = tx.send(1).await;
+        let _ = tx.send(3).await;
+        let _ = tx.send(2).await;
+    });
+
+    loop {
+        tokio::select! {
+            res = &mut operation, if !done => {
+                done = true;
+                if let Some(v) = res {
+                    println!("GOT = {}", v);
+                    break;
+                }
+            }
+            Some(v) = rx.recv() => {
+                println!("recieve value: {}", v);
+                if v % 2 == 0 {
+                    // 该操作重新使用新的参数设置 operation
+                    operation.set(action(Some(v)));
+                    done = false;
+                }
+            }
+        }
+    }
+
+    println!("tokio select demo done");
+}
+
+#[tokio::test]
+async fn it_tokio_stream() {
+    use tokio_stream::StreamExt;
+
+    let mut stream = tokio_stream::iter(&[1, 2, 3]);
+    while let Some(v) = stream.next().await {
+        println!("GOT = {:?}", v);
+    }
+
+    println!("tokio stream demo done");
+}
+
+#[tokio::test]
+async fn it_tokio_stream_in_loop() {
+    use std::time::Duration;
+    use tokio::{sync::oneshot, time};
+    use tokio_stream::StreamExt;
+
+    let (tx, mut rx) = oneshot::channel();
+    tokio::spawn(async move {
+        time::sleep(Duration::from_millis(700)).await;
+        tx.send(1)
+    });
+
+    let mut stream = tokio_stream::iter(&[1, 2, 3]);
+
+    loop {
+        tokio::select! {
+            Ok(v) = &mut rx => {
+                println!("recveive {}", v);
+                break;
+            }
+            Some(v) = stream.next() => {
+                time::sleep(Duration::from_millis(500)).await;
+                println!("got {}", v);
+            }
+        }
+    }
+
+    println!("tokio stream demo done");
+}
+
+#[tokio::test]
+async fn it_waitgroup_by_channel() {
     // TODO:
 }
 

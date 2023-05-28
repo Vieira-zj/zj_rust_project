@@ -11,12 +11,13 @@ bytes = "1" # 代替 Vec<u8>
 lazy_static = "1.4.0"
 num = "0.4.0"
 thiserror = "1.0"
-# 异步编程依赖
+# 异步编程
 futures = "0.3"
 async-std = { version = "1.6", features = ["attributes"] }
-# cache bin 依赖
+# tokio 异步编程
 mini-redis = "0.4"
 tokio = { version = "1", features = ["full"] }
+tokio-stream = "0.1"
 # 引入自定义 macro
 hello_macro_derive = { path = "./hello_macro_derive" }
 

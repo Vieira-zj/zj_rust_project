@@ -2,13 +2,74 @@ use bytes::Bytes;
 use mini_redis::{client, Result};
 use tokio::sync::mpsc;
 use tokio::sync::oneshot;
+use tokio_stream::StreamExt;
 
 // mini redis client
 
 #[tokio::main]
 async fn main() {
-    run_client_by_queue().await;
-    println!("mini cache client done")
+    run_client_with_queue(false).await;
+    run_subscribe_client(false).await.unwrap();
+    println!("mini-redis client done")
+}
+
+// Subscribe Client
+
+async fn run_subscribe_client(is_run: bool) -> mini_redis::Result<()> {
+    // pre cond: start mini redis
+    // mini-redis-server
+    if !is_run {
+        return Ok(());
+    }
+
+    tokio::spawn(async {
+        publish().await.unwrap();
+    });
+    subscribe().await?;
+    println!("mini-redis subscribe demo done");
+    Ok(())
+}
+
+async fn publish() -> mini_redis::Result<()> {
+    let mut client = client::connect("127.0.0.1:6379").await?;
+    tokio::time::sleep(std::time::Duration::from_millis(10)).await;
+
+    client.publish("numbers", "1".into()).await?;
+    client.publish("numbers", "two".into()).await?;
+    client.publish("numbers", "3".into()).await?;
+    client.publish("numbers", "four".into()).await?;
+    client.publish("numbers", "five".into()).await?;
+    client.publish("numbers", "6".into()).await?;
+    Ok(())
+}
+
+async fn subscribe() -> mini_redis::Result<()> {
+    let client = client::connect("127.0.0.1:6379").await?;
+    let subscriber = client.subscribe(vec!["numbers".to_string()]).await?;
+    let messages = subscriber.into_stream();
+
+    tokio::pin!(messages);
+
+    loop {
+        tokio::select! {
+            Some(v) = messages.next() => {
+                println!("got = {:?}", v);
+            }
+            res = tokio::signal::ctrl_c() => {
+                match res {
+                    Ok(()) => {
+                        println!("get interrupt signal, and exit");
+                    }
+                    Err(err) => {
+                        eprintln!("listen for shutdown signal error: {}", err);
+                    }
+                }
+                break;
+            }
+        }
+    }
+
+    Ok(())
 }
 
 // Client by Queue
@@ -28,7 +89,11 @@ enum Command {
     },
 }
 
-async fn run_client_by_queue() {
+async fn run_client_with_queue(is_run: bool) {
+    if !is_run {
+        return;
+    }
+
     let (tx, mut rx) = mpsc::channel(32);
     let tx2 = tx.clone();
 
