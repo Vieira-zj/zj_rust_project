@@ -503,6 +503,51 @@ async fn it_custom_delay_future() {
 }
 
 //
+// Default
+//
+
+#[test]
+fn it_new_struct_default() {
+    struct A {
+        i: i32,
+    }
+
+    impl Default for A {
+        fn default() -> Self {
+            println!("called A::default()");
+            A { i: 42 }
+        }
+    }
+
+    #[derive(Default)]
+    struct B {
+        a: A,
+        i: i32,
+    }
+
+    impl B {
+        fn new(a: A) -> Self {
+            if a.i > 0 {
+                B {
+                    a: a,
+                    // A::default() is called in B::default(), even though "a" is provided here
+                    ..Default::default()
+                }
+            } else {
+                B {
+                    i: 3,
+                    ..Default::default()
+                }
+            }
+        }
+    }
+
+    let a = A { i: 0 };
+    let b = B::new(a);
+    println!("b.i={}, b.a.i={}", b.i, b.a.i);
+}
+
+//
 // Exp
 //
 
