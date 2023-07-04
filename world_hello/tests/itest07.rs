@@ -503,7 +503,7 @@ async fn it_custom_delay_future() {
 }
 
 //
-// Default
+// Features
 //
 
 #[test]
@@ -545,6 +545,113 @@ fn it_new_struct_default() {
     let a = A { i: 0 };
     let b = B::new(a);
     println!("b.i={}, b.a.i={}", b.i, b.a.i);
+}
+
+#[test]
+fn it_rc_and_refcell_demo() {
+    use std::collections::BTreeMap;
+    use std::{cell::RefCell, rc::Rc};
+
+    #[derive(Debug)]
+    struct MyError {
+        msg: String,
+    }
+    impl MyError {
+        fn new(msg: &str) -> Self {
+            Self {
+                msg: String::from(msg),
+            }
+        }
+    }
+
+    #[derive(Clone)]
+    struct Guest {
+        name: String,
+        address: String,
+    }
+
+    struct Guests {
+        by_arrival: Vec<Rc<RefCell<Guest>>>,
+        by_name: BTreeMap<String, Rc<RefCell<Guest>>>,
+    }
+
+    impl Guests {
+        fn new(cap: usize) -> Self {
+            Guests {
+                by_arrival: Vec::with_capacity(cap),
+                by_name: BTreeMap::new(),
+            }
+        }
+
+        fn string(&self) -> String {
+            let mut result = String::from("\nby arrival: ");
+            self.by_arrival.iter().enumerate().for_each(|ele| {
+                let guest = ele.1.borrow();
+                result.push_str(format!("idx={},name={} | ", ele.0, guest.name).as_str());
+            });
+
+            result.push_str("\nby name: ");
+            self.by_name.iter().for_each(|ele| {
+                let guest = ele.1.borrow();
+                result.push_str(format!("name={},addr={} | ", guest.name, guest.address).as_str());
+            });
+            result
+        }
+
+        fn register(&mut self, guest: Guest) {
+            let name = guest.name.clone();
+            let guest = Rc::new(RefCell::new(guest));
+            self.by_arrival.push(guest.clone());
+            self.by_name.insert(name, guest);
+        }
+
+        fn deregister(&mut self, idx: usize) -> Result<(), MyError> {
+            if idx >= self.by_arrival.len() {
+                return Err(MyError::new("out of bounds"));
+            }
+            let guest = self.by_arrival.remove(idx);
+            self.by_name.remove(&guest.borrow().name);
+            Ok(())
+        }
+
+        fn update_addr(&self, name: &str, addr: &str) -> bool {
+            if let Some(guest) = self.by_name.get(name) {
+                guest.borrow_mut().address = String::from(addr);
+                return true;
+            }
+            false
+        }
+    }
+
+    let alice = Guest {
+        name: String::from("alice"),
+        address: String::from("cn"),
+    };
+    let bob = Guest {
+        name: String::from("bob"),
+        address: String::from("en"),
+    };
+    let charlie = Guest {
+        name: String::from("charlie"),
+        address: String::from("vn"),
+    };
+
+    let mut guests = Guests::new(3);
+    guests.register(alice);
+    guests.register(bob);
+    guests.register(charlie);
+    println!("register starts as: {}", guests.string());
+
+    let result = guests.deregister(0);
+    match result {
+        Ok(()) => println!("\nregister after deregister: {}", guests.string()),
+        Err(err) => println!("deregister error: {}", err.msg),
+    }
+
+    let result = guests.update_addr("charlie", "th");
+    if result {
+        println!("\nregister after update address: {}", guests.string());
+    }
 }
 
 //
@@ -596,6 +703,13 @@ fn it_iterator_slice() {
 
     let result = largest_by_copy(&v);
     println!("largest: {}", result);
+}
+
+#[test]
+fn it_gen_data_by_iterator() {
+    // let range = 0..=10;
+    let data: Vec<i32> = (0..=10).into_iter().filter(|x| x % 2 == 0).collect();
+    println!("{:?}", data);
 }
 
 #[test]

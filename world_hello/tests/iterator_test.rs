@@ -103,6 +103,6 @@ fn it_iterator_into_iter() {
     // 获取所有权的方式
     println!("todos:");
     for todo in todos {
-        println!("{}: {}", todo.message, todo.done)
+        println!("{}: {}", todo.message, todo.done);
     }
 }
