@@ -6,11 +6,12 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-bytes = "1" # 代替 Vec<u8>
-
+bytes = "1"           # 代替 Vec<u8>
+chrono = "0.4.26"     # datetime 处理
 lazy_static = "1.4.0"
 num = "0.4.0"
 thiserror = "1.0"
+
 # 异步编程
 futures = "0.3"
 async-std = { version = "1.6", features = ["attributes"] }
@@ -18,6 +19,7 @@ async-std = { version = "1.6", features = ["attributes"] }
 mini-redis = "0.4"
 tokio = { version = "1", features = ["full"] }
 tokio-stream = "0.1"
+
 # 引入自定义 macro
 hello_macro_derive = { path = "./hello_macro_derive" }
 

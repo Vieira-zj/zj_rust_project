@@ -152,3 +152,58 @@ fn it_custom_wrapped_error() {
         Err(err) => println!("fail read:\n{}", err),
     }
 }
+
+// chain build
+
+#[test]
+#[allow(dead_code, deprecated)]
+fn it_chain_build_of_struct() {
+    #[derive(Debug)]
+    struct Details {
+        given_name: String,
+        family_name: String,
+        preferred_name: Option<String>,
+        mobile_phone: Option<String>,
+        dob: chrono::Date<chrono::Utc>,
+        last_seen: Option<chrono::DateTime<chrono::Utc>>,
+    }
+
+    struct DetailsBuilder(Details);
+
+    impl DetailsBuilder {
+        fn new(given_name: &str, family_name: &str, dob: chrono::Date<chrono::Utc>) -> Self {
+            DetailsBuilder(Details {
+                given_name: given_name.to_owned(),
+                family_name: family_name.to_owned(),
+                preferred_name: None,
+                mobile_phone: None,
+                dob: dob,
+                last_seen: None,
+            })
+        }
+
+        fn preferred_name(&mut self, preferred_name: &str) -> &mut Self {
+            self.0.preferred_name = Some(preferred_name.to_owned());
+            self
+        }
+
+        fn mobile_phone(&mut self, mobile_phone: &str) -> &mut Self {
+            self.0.mobile_phone = Some(mobile_phone.to_owned());
+            self
+        }
+
+        fn just_seen(&mut self) -> &mut Self {
+            self.0.last_seen = Some(chrono::Utc::now());
+            self
+        }
+
+        fn build(self) -> Details {
+            self.0
+        }
+    }
+
+    let mut builder = DetailsBuilder::new("Bar", "Builder", chrono::Utc::today());
+    builder.preferred_name("Foo").just_seen();
+    let details = builder.build();
+    println!("details: {:?}", details);
+}
