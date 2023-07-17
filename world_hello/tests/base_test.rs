@@ -1,5 +1,22 @@
 use std::io::{BufRead, Read};
 
+// iterator
+
+#[test]
+fn it_handle_err_from_collect() {
+    use std::convert::TryFrom;
+
+    let input: Vec<i64> = vec![0, 1, 2, 3, 4, 512];
+    let result = input
+        .into_iter()
+        .map(|v| <u8>::try_from(v))
+        .collect::<Result<Vec<_>, _>>();
+    match result {
+        Ok(v) => println!("vec<u8>: {:?}", v),
+        Err(err) => println!("get error: {:?}", err),
+    }
+}
+
 // trait
 
 #[test]
@@ -10,6 +27,28 @@ fn it_copy_trait() {
     let copied = k; // value bitwise copied from k to copied
     println!("src key: {:?}", k);
     println!("copied key: {:?}", copied);
+}
+
+// ref
+
+#[test]
+fn it_box_deref() {
+    struct Point {
+        x: i32,
+        y: i32,
+    }
+
+    fn show(pt: &Point) {
+        println!("x={}, y={}", pt.x, pt.y);
+    }
+
+    let pt = Point { x: 1, y: 3 };
+    let ref_pt = &pt;
+    show(ref_pt);
+
+    // deref creates a reference to the Target type.
+    let box_pt = Box::new(pt);
+    show(&box_pt);
 }
 
 // custom err for error handle
