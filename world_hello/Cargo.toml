@@ -5,22 +5,27 @@ edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+# deps, refer to: https://docs.rs/glob/latest/glob/
+
 [dependencies]
-bytes = "1"           # 代替 Vec<u8>
-chrono = "0.4.26"     # datetime 处理
+bytes = "1"           # instead Vec<u8>
+chrono = "0.4.26"     # datetime
+glob = "0.3.1"
 lazy_static = "1.4.0"
 num = "0.4.0"
+rand = "0.8.5"
 thiserror = "1.0"
+walkdir = "2"
 
-# 异步编程
+# async
 futures = "0.3"
 async-std = { version = "1.6", features = ["attributes"] }
-# tokio 异步编程
+# async: tokio
 mini-redis = "0.4"
 tokio = { version = "1", features = ["full"] }
 tokio-stream = "0.1"
 
-# 引入自定义 macro
+# import custom macro
 hello_macro_derive = { path = "./hello_macro_derive" }
 
 [dev-dependencies]
