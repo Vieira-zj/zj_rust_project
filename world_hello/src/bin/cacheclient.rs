@@ -11,6 +11,7 @@ use tokio_stream::StreamExt;
 async fn main() {
     run_client_with_queue(false).await;
     run_subscribe_client(false).await.unwrap();
+
     println!("mini-redis client done")
 }
 

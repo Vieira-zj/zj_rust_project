@@ -6,6 +6,7 @@ async fn main() {
     // curl http://127.0.0.1:7878/
     // curl http://127.0.0.1:7878/sleep
     run_app_async_websrv(false).await;
+
     println!("async main done");
 }
 

@@ -1,5 +1,39 @@
 use std::io::{BufRead, Read};
 
+// trait
+
+#[test]
+fn it_copy_trait() {
+    #[derive(Debug, Clone, Copy)]
+    struct KeyId(u32);
+    let k = KeyId(42);
+    let copied = k; // value bitwise copied from k to copied
+    println!("src key: {:?}", k);
+    println!("copied key: {:?}", copied);
+}
+
+// ref
+
+#[test]
+fn it_box_deref() {
+    struct Point {
+        x: i32,
+        y: i32,
+    }
+
+    fn show(pt: &Point) {
+        println!("x={}, y={}", pt.x, pt.y);
+    }
+
+    let pt = Point { x: 1, y: 3 };
+    let ref_pt = &pt;
+    show(ref_pt);
+
+    // deref creates a reference to the Target type.
+    let box_pt = Box::new(pt);
+    show(&box_pt);
+}
+
 // iterator
 
 #[test]
@@ -128,10 +162,10 @@ fn it_iterator_into_iter() {
     }
 }
 
-// collections
+// sort collection
 
 #[test]
-fn it_sort_collection() {
+fn it_sort_vector() {
     // int
     let mut vec = vec![1, 5, 10, 2, 15];
     vec.sort();
@@ -143,38 +177,33 @@ fn it_sort_collection() {
     assert_eq!(vec, vec![1.1, 1.123, 1.15, 2.0, 5.5]);
 }
 
-// trait
-
 #[test]
-fn it_copy_trait() {
-    #[derive(Debug, Clone, Copy)]
-    struct KeyId(u32);
-    let k = KeyId(42);
-    let copied = k; // value bitwise copied from k to copied
-    println!("src key: {:?}", k);
-    println!("copied key: {:?}", copied);
-}
-
-// ref
-
-#[test]
-fn it_box_deref() {
-    struct Point {
-        x: i32,
-        y: i32,
+fn it_sort_for_custom_struct() {
+    #[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
+    struct Person {
+        name: String,
+        age: u32,
     }
 
-    fn show(pt: &Point) {
-        println!("x={}, y={}", pt.x, pt.y);
+    impl Person {
+        fn new(name: String, age: u32) -> Self {
+            Person {
+                name: name,
+                age: age,
+            }
+        }
     }
 
-    let pt = Point { x: 1, y: 3 };
-    let ref_pt = &pt;
-    show(ref_pt);
+    let mut people = vec![
+        Person::new("Zoe".to_string(), 25),
+        Person::new("Al".to_string(), 60),
+        Person::new("John".to_string(), 1),
+    ];
 
-    // deref creates a reference to the Target type.
-    let box_pt = Box::new(pt);
-    show(&box_pt);
+    people.sort_by(|a, b| b.age.cmp(&a.age));
+    for p in people.into_iter() {
+        println!("{:?}", p);
+    }
 }
 
 // custom err for error handle
@@ -371,4 +400,38 @@ fn it_chain_build_of_struct() {
     builder.preferred_name("Foo").just_seen();
     let details = builder.build();
     println!("details: {:?}", details);
+}
+
+// fromstr
+
+#[test]
+fn it_new_struct_fromstr() {
+    use std::str::FromStr;
+
+    #[derive(Debug)]
+    struct RGB {
+        r: u8,
+        g: u8,
+        b: u8,
+    }
+
+    impl FromStr for RGB {
+        type Err = std::num::ParseIntError;
+
+        fn from_str(hex_code: &str) -> Result<Self, Self::Err> {
+            let r = u8::from_str_radix(&hex_code[1..3], 16)?;
+            let g = u8::from_str_radix(&hex_code[3..5], 16)?;
+            let b: u8 = u8::from_str_radix(&hex_code[5..7], 16)?;
+            Ok(RGB { r: r, g: g, b: b })
+        }
+    }
+
+    let code = "#fa7268";
+    match RGB::from_str(code) {
+        Ok(rgb) => println!(
+            r"The RGB color code is: R: {} G: {} B: {}",
+            rgb.r, rgb.g, rgb.b
+        ),
+        Err(_) => println!("{} is not a valid color hex code", code),
+    }
 }

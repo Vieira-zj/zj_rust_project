@@ -6,6 +6,9 @@ run:
 run-async:
 	@cargo run --bin asyncmain
 
+run-tokio:
+	@cargo run --bin tokiomain
+
 run-cache-server:
 	@cargo run --bin cacheserver
 

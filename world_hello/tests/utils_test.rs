@@ -198,7 +198,7 @@ fn it_find_files_in_dir() {
     }
 }
 
-// rand
+// random
 
 #[test]
 fn it_generate_rand_values() {
@@ -230,10 +230,64 @@ fn it_generate_rand_values() {
 #[test]
 fn it_generate_rand_string() {
     use rand::distributions::{Alphanumeric, DistString};
+    use rand::Rng;
 
+    // rand string
     let s = Alphanumeric.sample_string(&mut rand::thread_rng(), 16);
     println!("random string: {}", s);
 
     // rand password
-    // TODO:
+    const CHARSET: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZ\
+        abcdefghijklmnopqrstuvwxyz\
+        0123456789)(*&^%$#@!~";
+    const PASSWORD_LEN: usize = 30;
+
+    let mut rng = rand::thread_rng();
+    let password: String = (0..PASSWORD_LEN)
+        .map(|_| {
+            let idx = rng.gen_range(0..CHARSET.len());
+            CHARSET[idx] as char
+        })
+        .collect();
+    println!("password: {}", password);
+}
+
+// regex
+
+#[test]
+fn it_regex_find_tags() {
+    use lazy_static::lazy_static;
+    use regex::Regex;
+    use std::collections::HashSet;
+
+    fn extract_hashtags(text: &str) -> HashSet<&str> {
+        lazy_static! {
+            static ref HASHTAG_REGEX: Regex = Regex::new(r"\#[a-zA-Z][0-9a-zA-Z_]*").unwrap();
+        }
+        HASHTAG_REGEX.find_iter(text).map(|m| m.as_str()).collect()
+    }
+
+    let tweet = "Hey #world, I just got my new #dog, say hello to Till. #dog #forever #2 #_ ";
+    let tags = extract_hashtags(tweet);
+    assert_eq!(tags.len(), 3);
+    assert!(tags.contains("#dog") && tags.contains("#forever") && tags.contains("#world"));
+}
+
+#[test]
+fn it_regex_relace_all() {
+    use lazy_static::lazy_static;
+    use regex::Regex;
+    use std::borrow::Cow;
+
+    fn reformat_dates(text: &str) -> Cow<str> {
+        lazy_static! {
+            static ref ISO8601_DATE_REGEX: Regex =
+                Regex::new(r"(?P<y>\d{4})-(?P<m>\d{2})-(?P<d>\d{2})").unwrap();
+        }
+        ISO8601_DATE_REGEX.replace_all(text, "$m/$d/$y")
+    }
+
+    let before = "2012-03-14, 2013-01-15 and 2014-07-05";
+    let after = reformat_dates(before);
+    assert_eq!(after, "03/14/2012, 01/15/2013 and 07/05/2014");
 }

@@ -1,7 +1,7 @@
 use std::fs::File;
 use std::io::Read;
 
-// file io samples
+// sample: file io
 
 pub fn read_file_v1(is_run: bool) {
     if !is_run {
