@@ -109,6 +109,35 @@ fn it_read_write_file() {
 }
 
 #[test]
+fn it_create_append_file() {
+    use std::fs::{self, OpenOptions};
+    use std::io::Write;
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    let fpath = "/tmp/test/raw.text";
+    match fs::remove_file(fpath) {
+        Ok(_) => println!("remove file: {}", fpath),
+        Err(err) => println!("remove file error: {:?}", err),
+    }
+
+    let mut file_ref = OpenOptions::new()
+        .create(true)
+        .write(true)
+        .append(true)
+        .open(fpath)
+        .unwrap();
+
+    for i in 1..10 {
+        let now = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
+        let mut content = now.as_secs().to_string();
+        content.push_str("_");
+        content.push_str(&i.to_string());
+        file_ref.write_all(content.as_bytes()).unwrap();
+        file_ref.write_all("\n".as_bytes()).unwrap();
+    }
+}
+
+#[test]
 fn it_get_modified_files() {
     use std::{env, fs};
 
