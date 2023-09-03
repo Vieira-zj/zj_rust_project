@@ -2,6 +2,7 @@ pub mod fsdemo;
 pub mod linkedlist;
 pub mod macrodemo;
 pub mod rsdemo;
+pub mod utilsdemo;
 
 // demo: trait
 
