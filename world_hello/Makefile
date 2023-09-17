@@ -1,4 +1,7 @@
-default: run
+default: version
+
+version:
+	@cargo -V
 
 run:
 	@cargo run --bin main
