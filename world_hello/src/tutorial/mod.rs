@@ -1,3 +1,4 @@
+pub mod calculator;
 pub mod fsdemo;
 pub mod linkedlist;
 pub mod macrodemo;
