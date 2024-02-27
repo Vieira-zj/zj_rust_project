@@ -91,6 +91,16 @@ fn it_parse_datetime() {
 }
 
 // file io
+#[test]
+fn it_file_path() {
+    use std::path::Path;
+
+    let url = "https://api.example.com/data";
+    let path = Path::new("/tmp/downloads").join(url.split("/").last().unwrap());
+    if let Some(p) = path.to_str() {
+        println!("path: {}", p);
+    }
+}
 
 #[test]
 fn it_read_write_file() {

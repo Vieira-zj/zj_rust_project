@@ -1,5 +1,5 @@
 use world_hello::config;
-use world_hello::tutorial::{calculator, fsdemo, macrodemo, rsdemo};
+use world_hello::tutorial::{calculator, download, fsdemo, macrodemo, rsdemo};
 
 fn main() {
     config::init();
@@ -46,6 +46,9 @@ fn run_demo() {
 
     if false {
         calculator::run();
+    }
+    if false {
+        download::run();
     }
 }
 

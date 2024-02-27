@@ -3,6 +3,10 @@ default: version
 version:
 	@cargo -V
 
+# sync deps
+build:
+	@cargo build
+
 run:
 	@cargo run --bin main
 
